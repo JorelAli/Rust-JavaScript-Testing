@@ -80,6 +80,308 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
 
 
 
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+var _List_Nil = { $: 0 };
+var _List_Nil_UNUSED = { $: '[]' };
+
+function _List_Cons(hd, tl) { return { $: 1, a: hd, b: tl }; }
+function _List_Cons_UNUSED(hd, tl) { return { $: '::', a: hd, b: tl }; }
+
+
+var _List_cons = F2(_List_Cons);
+
+function _List_fromArray(arr)
+{
+	var out = _List_Nil;
+	for (var i = arr.length; i--; )
+	{
+		out = _List_Cons(arr[i], out);
+	}
+	return out;
+}
+
+function _List_toArray(xs)
+{
+	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		out.push(xs.a);
+	}
+	return out;
+}
+
+var _List_map2 = F3(function(f, xs, ys)
+{
+	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
+	{
+		arr.push(A2(f, xs.a, ys.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map3 = F4(function(f, xs, ys, zs)
+{
+	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A3(f, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map4 = F5(function(f, ws, xs, ys, zs)
+{
+	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
+{
+	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_sortBy = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		return _Utils_cmp(f(a), f(b));
+	}));
+});
+
+var _List_sortWith = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		var ord = A2(f, a, b);
+		return ord === elm$core$Basics$EQ ? 0 : ord === elm$core$Basics$LT ? -1 : 1;
+	}));
+});
+
+
+
+// EQUALITY
+
+function _Utils_eq(x, y)
+{
+	for (
+		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
+		isEqual && (pair = stack.pop());
+		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
+		)
+	{}
+
+	return isEqual;
+}
+
+function _Utils_eqHelp(x, y, depth, stack)
+{
+	if (depth > 100)
+	{
+		stack.push(_Utils_Tuple2(x,y));
+		return true;
+	}
+
+	if (x === y)
+	{
+		return true;
+	}
+
+	if (typeof x !== 'object' || x === null || y === null)
+	{
+		typeof x === 'function' && _Debug_crash(5);
+		return false;
+	}
+
+	/**_UNUSED/
+	if (x.$ === 'Set_elm_builtin')
+	{
+		x = elm$core$Set$toList(x);
+		y = elm$core$Set$toList(y);
+	}
+	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
+	{
+		x = elm$core$Dict$toList(x);
+		y = elm$core$Dict$toList(y);
+	}
+	//*/
+
+	/**/
+	if (x.$ < 0)
+	{
+		x = elm$core$Dict$toList(x);
+		y = elm$core$Dict$toList(y);
+	}
+	//*/
+
+	for (var key in x)
+	{
+		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+var _Utils_equal = F2(_Utils_eq);
+var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
+
+
+
+// COMPARISONS
+
+// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
+// the particular integer values assigned to LT, EQ, and GT.
+
+function _Utils_cmp(x, y, ord)
+{
+	if (typeof x !== 'object')
+	{
+		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
+	}
+
+	/**_UNUSED/
+	if (x instanceof String)
+	{
+		var a = x.valueOf();
+		var b = y.valueOf();
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	//*/
+
+	/**/
+	if (typeof x.$ === 'undefined')
+	//*/
+	/**_UNUSED/
+	if (x.$[0] === '#')
+	//*/
+	{
+		return (ord = _Utils_cmp(x.a, y.a))
+			? ord
+			: (ord = _Utils_cmp(x.b, y.b))
+				? ord
+				: _Utils_cmp(x.c, y.c);
+	}
+
+	// traverse conses until end of a list or a mismatch
+	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
+	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
+}
+
+var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
+var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
+var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
+var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
+
+var _Utils_compare = F2(function(x, y)
+{
+	var n = _Utils_cmp(x, y);
+	return n < 0 ? elm$core$Basics$LT : n ? elm$core$Basics$GT : elm$core$Basics$EQ;
+});
+
+
+// COMMON VALUES
+
+var _Utils_Tuple0 = 0;
+var _Utils_Tuple0_UNUSED = { $: '#0' };
+
+function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
+
+function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+
+function _Utils_chr(c) { return c; }
+function _Utils_chr_UNUSED(c) { return new String(c); }
+
+
+// RECORDS
+
+function _Utils_update(oldRecord, updatedFields)
+{
+	var newRecord = {};
+
+	for (var key in oldRecord)
+	{
+		newRecord[key] = oldRecord[key];
+	}
+
+	for (var key in updatedFields)
+	{
+		newRecord[key] = updatedFields[key];
+	}
+
+	return newRecord;
+}
+
+
+// APPEND
+
+var _Utils_append = F2(_Utils_ap);
+
+function _Utils_ap(xs, ys)
+{
+	// append Strings
+	if (typeof xs === 'string')
+	{
+		return xs + ys;
+	}
+
+	// append Lists
+	if (!xs.b)
+	{
+		return ys;
+	}
+	var root = _List_Cons(xs.a, ys);
+	xs = xs.b
+	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		curr = curr.b = _List_Cons(xs.a, ys);
+	}
+	return root;
+}
+
+
+
 var _JsArray_empty = [];
 
 function _JsArray_singleton(value)
@@ -519,378 +821,12 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.L.A === region.R.A)
+	if (region.Y.D === region.ad.D)
 	{
-		return 'on line ' + region.L.A;
+		return 'on line ' + region.Y.D;
 	}
-	return 'on lines ' + region.L.A + ' through ' + region.R.A;
+	return 'on lines ' + region.Y.D + ' through ' + region.ad.D;
 }
-
-
-
-// EQUALITY
-
-function _Utils_eq(x, y)
-{
-	for (
-		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
-		isEqual && (pair = stack.pop());
-		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
-		)
-	{}
-
-	return isEqual;
-}
-
-function _Utils_eqHelp(x, y, depth, stack)
-{
-	if (depth > 100)
-	{
-		stack.push(_Utils_Tuple2(x,y));
-		return true;
-	}
-
-	if (x === y)
-	{
-		return true;
-	}
-
-	if (typeof x !== 'object' || x === null || y === null)
-	{
-		typeof x === 'function' && _Debug_crash(5);
-		return false;
-	}
-
-	/**_UNUSED/
-	if (x.$ === 'Set_elm_builtin')
-	{
-		x = elm$core$Set$toList(x);
-		y = elm$core$Set$toList(y);
-	}
-	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
-	{
-		x = elm$core$Dict$toList(x);
-		y = elm$core$Dict$toList(y);
-	}
-	//*/
-
-	/**/
-	if (x.$ < 0)
-	{
-		x = elm$core$Dict$toList(x);
-		y = elm$core$Dict$toList(y);
-	}
-	//*/
-
-	for (var key in x)
-	{
-		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-var _Utils_equal = F2(_Utils_eq);
-var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
-
-
-
-// COMPARISONS
-
-// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
-// the particular integer values assigned to LT, EQ, and GT.
-
-function _Utils_cmp(x, y, ord)
-{
-	if (typeof x !== 'object')
-	{
-		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
-	}
-
-	/**_UNUSED/
-	if (x instanceof String)
-	{
-		var a = x.valueOf();
-		var b = y.valueOf();
-		return a === b ? 0 : a < b ? -1 : 1;
-	}
-	//*/
-
-	/**/
-	if (typeof x.$ === 'undefined')
-	//*/
-	/**_UNUSED/
-	if (x.$[0] === '#')
-	//*/
-	{
-		return (ord = _Utils_cmp(x.a, y.a))
-			? ord
-			: (ord = _Utils_cmp(x.b, y.b))
-				? ord
-				: _Utils_cmp(x.c, y.c);
-	}
-
-	// traverse conses until end of a list or a mismatch
-	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
-	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
-}
-
-var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
-var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
-var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
-var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
-
-var _Utils_compare = F2(function(x, y)
-{
-	var n = _Utils_cmp(x, y);
-	return n < 0 ? elm$core$Basics$LT : n ? elm$core$Basics$GT : elm$core$Basics$EQ;
-});
-
-
-// COMMON VALUES
-
-var _Utils_Tuple0 = 0;
-var _Utils_Tuple0_UNUSED = { $: '#0' };
-
-function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
-
-function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
-
-function _Utils_chr(c) { return c; }
-function _Utils_chr_UNUSED(c) { return new String(c); }
-
-
-// RECORDS
-
-function _Utils_update(oldRecord, updatedFields)
-{
-	var newRecord = {};
-
-	for (var key in oldRecord)
-	{
-		newRecord[key] = oldRecord[key];
-	}
-
-	for (var key in updatedFields)
-	{
-		newRecord[key] = updatedFields[key];
-	}
-
-	return newRecord;
-}
-
-
-// APPEND
-
-var _Utils_append = F2(_Utils_ap);
-
-function _Utils_ap(xs, ys)
-{
-	// append Strings
-	if (typeof xs === 'string')
-	{
-		return xs + ys;
-	}
-
-	// append Lists
-	if (!xs.b)
-	{
-		return ys;
-	}
-	var root = _List_Cons(xs.a, ys);
-	xs = xs.b
-	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		curr = curr.b = _List_Cons(xs.a, ys);
-	}
-	return root;
-}
-
-
-
-var _List_Nil = { $: 0 };
-var _List_Nil_UNUSED = { $: '[]' };
-
-function _List_Cons(hd, tl) { return { $: 1, a: hd, b: tl }; }
-function _List_Cons_UNUSED(hd, tl) { return { $: '::', a: hd, b: tl }; }
-
-
-var _List_cons = F2(_List_Cons);
-
-function _List_fromArray(arr)
-{
-	var out = _List_Nil;
-	for (var i = arr.length; i--; )
-	{
-		out = _List_Cons(arr[i], out);
-	}
-	return out;
-}
-
-function _List_toArray(xs)
-{
-	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		out.push(xs.a);
-	}
-	return out;
-}
-
-var _List_map2 = F3(function(f, xs, ys)
-{
-	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
-	{
-		arr.push(A2(f, xs.a, ys.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map3 = F4(function(f, xs, ys, zs)
-{
-	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A3(f, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map4 = F5(function(f, ws, xs, ys, zs)
-{
-	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
-{
-	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_sortBy = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		return _Utils_cmp(f(a), f(b));
-	}));
-});
-
-var _List_sortWith = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		var ord = A2(f, a, b);
-		return ord === elm$core$Basics$EQ ? 0 : ord === elm$core$Basics$LT ? -1 : 1;
-	}));
-});
-
-
-// CREATE
-
-var _Regex_never = /.^/;
-
-var _Regex_fromStringWith = F2(function(options, string)
-{
-	var flags = 'g';
-	if (options.X) { flags += 'm'; }
-	if (options.O) { flags += 'i'; }
-
-	try
-	{
-		return elm$core$Maybe$Just(new RegExp(string, flags));
-	}
-	catch(error)
-	{
-		return elm$core$Maybe$Nothing;
-	}
-});
-
-
-// USE
-
-var _Regex_contains = F2(function(re, string)
-{
-	return string.match(re) !== null;
-});
-
-
-var _Regex_findAtMost = F3(function(n, re, str)
-{
-	var out = [];
-	var number = 0;
-	var string = str;
-	var lastIndex = re.lastIndex;
-	var prevLastIndex = -1;
-	var result;
-	while (number++ < n && (result = re.exec(string)))
-	{
-		if (prevLastIndex == re.lastIndex) break;
-		var i = result.length - 1;
-		var subs = new Array(i);
-		while (i > 0)
-		{
-			var submatch = result[i];
-			subs[--i] = submatch
-				? elm$core$Maybe$Just(submatch)
-				: elm$core$Maybe$Nothing;
-		}
-		out.push(A4(elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
-		prevLastIndex = re.lastIndex;
-	}
-	re.lastIndex = lastIndex;
-	return _List_fromArray(out);
-});
-
-
-var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
-{
-	var count = 0;
-	function jsReplacer(match)
-	{
-		if (count++ >= n)
-		{
-			return match;
-		}
-		var i = arguments.length - 3;
-		var submatches = new Array(i);
-		while (i > 0)
-		{
-			var submatch = arguments[i];
-			submatches[--i] = submatch
-				? elm$core$Maybe$Just(submatch)
-				: elm$core$Maybe$Nothing;
-		}
-		return replacer(A4(elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
-	}
-	return string.replace(re, jsReplacer);
-});
-
-var _Regex_splitAtMost = F3(function(n, re, str)
-{
-	var string = str;
-	var out = [];
-	var start = re.lastIndex;
-	var restoreLastIndex = re.lastIndex;
-	while (n--)
-	{
-		var result = re.exec(string);
-		if (!result) break;
-		out.push(string.slice(start, result.index));
-		start = re.lastIndex;
-	}
-	out.push(string.slice(start));
-	re.lastIndex = restoreLastIndex;
-	return _List_fromArray(out);
-});
-
-var _Regex_infinity = Infinity;
 
 
 
@@ -1958,9 +1894,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.av,
-		impl.aG,
-		impl.aE,
+		impl.aI,
+		impl.aT,
+		impl.aR,
 		function() { return function() {} }
 	);
 });
@@ -2760,9 +2696,9 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		k: func(record.k),
-		M: record.M,
-		K: record.K
+		n: func(record.n),
+		Z: record.Z,
+		X: record.X
 	}
 });
 
@@ -3030,11 +2966,11 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.k;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.M;
+		var message = !tag ? value : tag < 3 ? value.a : value.n;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.Z;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.K) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.X) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3984,11 +3920,11 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.av,
-		impl.aG,
-		impl.aE,
+		impl.aI,
+		impl.aT,
+		impl.aR,
 		function(sendToApp, initialModel) {
-			var view = impl.aI;
+			var view = impl.aV;
 			/**/
 			var domNode = args['node'];
 			//*/
@@ -4020,12 +3956,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.av,
-		impl.aG,
-		impl.aE,
+		impl.aI,
+		impl.aT,
+		impl.aR,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.B && impl.B(sendToApp)
-			var view = impl.aI;
+			var divertHrefToApp = impl.E && impl.E(sendToApp)
+			var view = impl.aV;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -4033,12 +3969,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.an);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.aA);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.aF) && (_VirtualDom_doc.title = title = doc.aF);
+				(title !== doc.aS) && (_VirtualDom_doc.title = title = doc.aS);
 			});
 		}
 	);
@@ -4094,12 +4030,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.az;
-	var onUrlRequest = impl.aA;
+	var onUrlChange = impl.aM;
+	var onUrlRequest = impl.aN;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		B: function(sendToApp)
+		E: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4115,9 +4051,9 @@ function _Browser_application(impl)
 					var next = elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.ad === next.ad
-							&& curr.U === next.U
-							&& curr.aa.a === next.aa.a
+							&& curr.aq === next.aq
+							&& curr.ag === next.ag
+							&& curr.an.a === next.an.a
 						)
 							? elm$browser$Browser$Internal(next)
 							: elm$browser$Browser$External(href)
@@ -4125,13 +4061,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		av: function(flags)
+		aI: function(flags)
 		{
-			return A3(impl.av, flags, _Browser_getUrl(), key);
+			return A3(impl.aI, flags, _Browser_getUrl(), key);
 		},
-		aI: impl.aI,
-		aG: impl.aG,
-		aE: impl.aE
+		aV: impl.aV,
+		aT: impl.aT,
+		aR: impl.aR
 	});
 }
 
@@ -4197,17 +4133,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { as: 'hidden', ao: 'visibilitychange' }
+		? { aF: 'hidden', aB: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { as: 'mozHidden', ao: 'mozvisibilitychange' }
+		? { aF: 'mozHidden', aB: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { as: 'msHidden', ao: 'msvisibilitychange' }
+		? { aF: 'msHidden', aB: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { as: 'webkitHidden', ao: 'webkitvisibilitychange' }
-		: { as: 'hidden', ao: 'visibilitychange' };
+		? { aF: 'webkitHidden', aB: 'webkitvisibilitychange' }
+		: { aF: 'hidden', aB: 'visibilitychange' };
 }
 
 
@@ -4288,12 +4224,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		ah: _Browser_getScene(),
-		ak: {
-			G: _Browser_window.pageXOffset,
-			H: _Browser_window.pageYOffset,
-			x: _Browser_doc.documentElement.clientWidth,
-			s: _Browser_doc.documentElement.clientHeight
+		au: _Browser_getScene(),
+		ax: {
+			O: _Browser_window.pageXOffset,
+			P: _Browser_window.pageYOffset,
+			B: _Browser_doc.documentElement.clientWidth,
+			w: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4303,8 +4239,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		x: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		s: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		B: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		w: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4327,15 +4263,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			ah: {
-				x: node.scrollWidth,
-				s: node.scrollHeight
+			au: {
+				B: node.scrollWidth,
+				w: node.scrollHeight
 			},
-			ak: {
-				G: node.scrollLeft,
-				H: node.scrollTop,
-				x: node.clientWidth,
-				s: node.clientHeight
+			ax: {
+				O: node.scrollLeft,
+				P: node.scrollTop,
+				B: node.clientWidth,
+				w: node.clientHeight
 			}
 		};
 	});
@@ -4365,18 +4301,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			ah: _Browser_getScene(),
-			ak: {
-				G: x,
-				H: y,
-				x: _Browser_doc.documentElement.clientWidth,
-				s: _Browser_doc.documentElement.clientHeight
+			au: _Browser_getScene(),
+			ax: {
+				O: x,
+				P: y,
+				B: _Browser_doc.documentElement.clientWidth,
+				w: _Browser_doc.documentElement.clientHeight
 			},
-			ap: {
-				G: x + rect.left,
-				H: y + rect.top,
-				x: rect.width,
-				s: rect.height
+			aC: {
+				O: x + rect.left,
+				P: y + rect.top,
+				B: rect.width,
+				w: rect.height
 			}
 		};
 	});
@@ -4411,48 +4347,44 @@ function _Browser_load(url)
 		}
 	}));
 }
-var author$project$Main$init = {z: ''};
+var author$project$Main$init = {q: ''};
 var author$project$Main$update = F2(
 	function (msg, model) {
 		var newContent = msg;
 		return _Utils_update(
 			model,
-			{z: newContent});
+			{q: newContent});
 	});
 var author$project$Main$Change = elm$core$Basics$identity;
-var elm$core$Basics$False = 1;
-var elm$core$Maybe$Just = function (a) {
-	return {$: 0, a: a};
-};
-var elm$core$Maybe$Nothing = {$: 1};
-var elm$core$Basics$EQ = 1;
-var elm$core$Basics$LT = 0;
-var elm$core$Elm$JsArray$foldr = _JsArray_foldr;
-var elm$core$Array$foldr = F3(
-	function (func, baseCase, _n0) {
-		var tree = _n0.c;
-		var tail = _n0.d;
-		var helper = F2(
-			function (node, acc) {
-				if (!node.$) {
-					var subTree = node.a;
-					return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
-				} else {
-					var values = node.a;
-					return A3(elm$core$Elm$JsArray$foldr, func, acc, values);
-				}
-			});
-		return A3(
-			elm$core$Elm$JsArray$foldr,
-			helper,
-			A3(elm$core$Elm$JsArray$foldr, func, baseCase, tail),
-			tree);
+var author$project$Main$MD5 = 0;
+var author$project$Main$SHA1 = 2;
+var author$project$Main$SHA256 = 1;
+var TSFoster$elm_sha1$SHA1$Digest = F5(
+	function (a, b, c, d, e) {
+		return {$: 0, a: a, b: b, c: c, d: d, e: e};
 	});
-var elm$core$List$cons = _List_cons;
-var elm$core$Array$toList = function (array) {
-	return A3(elm$core$Array$foldr, elm$core$List$cons, _List_Nil, array);
+var TSFoster$elm_sha1$SHA1$finalDigest = function (_n0) {
+	var h0 = _n0.Q;
+	var h1 = _n0.R;
+	var h2 = _n0.S;
+	var h3 = _n0.T;
+	var h4 = _n0.U;
+	return A5(TSFoster$elm_sha1$SHA1$Digest, h0, h1, h2, h3, h4);
 };
+var TSFoster$elm_sha1$SHA1$State = F5(
+	function (h0, h1, h2, h3, h4) {
+		return {Q: h0, R: h1, S: h2, T: h3, U: h4};
+	});
+var TSFoster$elm_sha1$SHA1$init = A5(TSFoster$elm_sha1$SHA1$State, 1732584193, 4023233417, 2562383102, 271733878, 3285377520);
+var TSFoster$elm_sha1$SHA1$DeltaState = F5(
+	function (a, b, c, d, e) {
+		return {J: a, K: b, L: c, M: d, N: e};
+	});
+var elm$core$Bitwise$and = _Bitwise_and;
+var TSFoster$elm_sha1$SHA1$trim = elm$core$Bitwise$and(4294967295);
+var elm$core$Basics$EQ = 1;
 var elm$core$Basics$GT = 2;
+var elm$core$Basics$LT = 0;
 var elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
@@ -4478,6 +4410,7 @@ var elm$core$Dict$foldr = F3(
 			}
 		}
 	});
+var elm$core$List$cons = _List_cons;
 var elm$core$Dict$toList = function (dict) {
 	return A3(
 		elm$core$Dict$foldr,
@@ -4505,49 +4438,72 @@ var elm$core$Set$toList = function (_n0) {
 	var dict = _n0;
 	return elm$core$Dict$keys(dict);
 };
-var elm$regex$Regex$Match = F4(
-	function (match, index, number, submatches) {
-		return {au: index, aw: match, ay: number, aD: submatches};
-	});
-var elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
-var elm$regex$Regex$fromString = function (string) {
-	return A2(
-		elm$regex$Regex$fromStringWith,
-		{O: false, X: false},
-		string);
-};
-var elm$regex$Regex$replace = _Regex_replaceAtMost(_Regex_infinity);
-var author$project$Main$oodle = function (input) {
-	var _n0 = elm$regex$Regex$fromString('[aeiou]');
-	if (_n0.$ === 1) {
-		return input;
-	} else {
-		var matched = _n0.a;
+var elm$core$Elm$JsArray$foldr = _JsArray_foldr;
+var elm$core$Array$foldr = F3(
+	function (func, baseCase, _n0) {
+		var tree = _n0.c;
+		var tail = _n0.d;
+		var helper = F2(
+			function (node, acc) {
+				if (!node.$) {
+					var subTree = node.a;
+					return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+				} else {
+					var values = node.a;
+					return A3(elm$core$Elm$JsArray$foldr, func, acc, values);
+				}
+			});
 		return A3(
-			elm$regex$Regex$replace,
-			matched,
-			function (_n1) {
-				return 'oodle';
-			},
-			input);
-	}
-};
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$core$Basics$True = 0;
-var elm$core$Result$isOk = function (result) {
-	if (!result.$) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var elm$core$Array$branchFactor = 32;
-var elm$core$Array$Array_elm_builtin = F4(
-	function (a, b, c, d) {
-		return {$: 0, a: a, b: b, c: c, d: d};
+			elm$core$Elm$JsArray$foldr,
+			helper,
+			A3(elm$core$Elm$JsArray$foldr, func, baseCase, tail),
+			tree);
 	});
+var elm$core$Array$toList = function (array) {
+	return A3(elm$core$Array$foldr, elm$core$List$cons, _List_Nil, array);
+};
+var elm$core$Basics$add = _Basics_add;
+var elm$core$Basics$apL = F2(
+	function (f, x) {
+		return f(x);
+	});
+var elm$core$Basics$sub = _Basics_sub;
+var elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var TSFoster$elm_sha1$SHA1$rotateLeftBy = F2(
+	function (amount, i) {
+		return TSFoster$elm_sha1$SHA1$trim(
+			(i >>> (32 - amount)) + TSFoster$elm_sha1$SHA1$trim(i << amount));
+	});
+var elm$core$Basics$lt = _Utils_lt;
+var elm$core$Bitwise$complement = _Bitwise_complement;
+var elm$core$Bitwise$or = _Bitwise_or;
+var elm$core$Bitwise$xor = _Bitwise_xor;
+var TSFoster$elm_sha1$SHA1$calculateDigestDeltas = F3(
+	function (index, _int, _n0) {
+		var a = _n0.J;
+		var b = _n0.K;
+		var c = _n0.L;
+		var d = _n0.M;
+		var e = _n0.N;
+		var _n1 = (index < 20) ? _Utils_Tuple2(
+			(b & c) | (TSFoster$elm_sha1$SHA1$trim(~b) & d),
+			1518500249) : ((index < 40) ? _Utils_Tuple2(b ^ (c ^ d), 1859775393) : ((index < 60) ? _Utils_Tuple2(((b & c) | (b & d)) | (c & d), 2400959708) : _Utils_Tuple2(b ^ (c ^ d), 3395469782)));
+		var f = _n1.a;
+		var k = _n1.b;
+		return {
+			J: TSFoster$elm_sha1$SHA1$trim(
+				TSFoster$elm_sha1$SHA1$trim(
+					TSFoster$elm_sha1$SHA1$trim(
+						TSFoster$elm_sha1$SHA1$trim(
+							A2(TSFoster$elm_sha1$SHA1$rotateLeftBy, 5, a) + f) + e) + k) + _int),
+			K: a,
+			L: A2(TSFoster$elm_sha1$SHA1$rotateLeftBy, 30, b),
+			M: c,
+			N: d
+		};
+	});
+var elm$core$Array$branchFactor = 32;
 var elm$core$Basics$ceiling = _Basics_ceiling;
 var elm$core$Basics$fdiv = _Basics_fdiv;
 var elm$core$Basics$logBase = F2(
@@ -4557,15 +4513,150 @@ var elm$core$Basics$logBase = F2(
 var elm$core$Basics$toFloat = _Basics_toFloat;
 var elm$core$Array$shiftStep = elm$core$Basics$ceiling(
 	A2(elm$core$Basics$logBase, 2, elm$core$Array$branchFactor));
-var elm$core$Elm$JsArray$empty = _JsArray_empty;
-var elm$core$Array$empty = A4(elm$core$Array$Array_elm_builtin, 0, elm$core$Array$shiftStep, elm$core$Elm$JsArray$empty, elm$core$Elm$JsArray$empty);
-var elm$core$Array$Leaf = function (a) {
-	return {$: 1, a: a};
+var elm$core$Array$bitMask = 4294967295 >>> (32 - elm$core$Array$shiftStep);
+var elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var elm$core$Array$getHelp = F3(
+	function (shift, index, tree) {
+		getHelp:
+		while (true) {
+			var pos = elm$core$Array$bitMask & (index >>> shift);
+			var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (!_n0.$) {
+				var subTree = _n0.a;
+				var $temp$shift = shift - elm$core$Array$shiftStep,
+					$temp$index = index,
+					$temp$tree = subTree;
+				shift = $temp$shift;
+				index = $temp$index;
+				tree = $temp$tree;
+				continue getHelp;
+			} else {
+				var values = _n0.a;
+				return A2(elm$core$Elm$JsArray$unsafeGet, elm$core$Array$bitMask & index, values);
+			}
+		}
+	});
+var elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
+	});
+var elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
 };
+var elm$core$Basics$ge = _Utils_ge;
+var elm$core$Basics$or = _Basics_or;
+var elm$core$Maybe$Just = function (a) {
+	return {$: 0, a: a};
+};
+var elm$core$Maybe$Nothing = {$: 1};
+var elm$core$Array$get = F2(
+	function (index, _n0) {
+		var len = _n0.a;
+		var startShift = _n0.b;
+		var tree = _n0.c;
+		var tail = _n0.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? elm$core$Maybe$Nothing : ((_Utils_cmp(
+			index,
+			elm$core$Array$tailIndex(len)) > -1) ? elm$core$Maybe$Just(
+			A2(elm$core$Elm$JsArray$unsafeGet, elm$core$Array$bitMask & index, tail)) : elm$core$Maybe$Just(
+			A3(elm$core$Array$getHelp, startShift, index, tree)));
+	});
+var elm$core$Array$Array_elm_builtin = F4(
+	function (a, b, c, d) {
+		return {$: 0, a: a, b: b, c: c, d: d};
+	});
 var elm$core$Array$SubTree = function (a) {
 	return {$: 0, a: a};
 };
-var elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
+var elm$core$Array$Leaf = function (a) {
+	return {$: 1, a: a};
+};
+var elm$core$Basics$eq = _Utils_equal;
+var elm$core$Elm$JsArray$empty = _JsArray_empty;
+var elm$core$Elm$JsArray$length = _JsArray_length;
+var elm$core$Elm$JsArray$push = _JsArray_push;
+var elm$core$Elm$JsArray$singleton = _JsArray_singleton;
+var elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var elm$core$Array$insertTailInTree = F4(
+	function (shift, index, tail, tree) {
+		var pos = elm$core$Array$bitMask & (index >>> shift);
+		if (_Utils_cmp(
+			pos,
+			elm$core$Elm$JsArray$length(tree)) > -1) {
+			if (shift === 5) {
+				return A2(
+					elm$core$Elm$JsArray$push,
+					elm$core$Array$Leaf(tail),
+					tree);
+			} else {
+				var newSub = elm$core$Array$SubTree(
+					A4(elm$core$Array$insertTailInTree, shift - elm$core$Array$shiftStep, index, tail, elm$core$Elm$JsArray$empty));
+				return A2(elm$core$Elm$JsArray$push, newSub, tree);
+			}
+		} else {
+			var value = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (!value.$) {
+				var subTree = value.a;
+				var newSub = elm$core$Array$SubTree(
+					A4(elm$core$Array$insertTailInTree, shift - elm$core$Array$shiftStep, index, tail, subTree));
+				return A3(elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
+			} else {
+				var newSub = elm$core$Array$SubTree(
+					A4(
+						elm$core$Array$insertTailInTree,
+						shift - elm$core$Array$shiftStep,
+						index,
+						tail,
+						elm$core$Elm$JsArray$singleton(value)));
+				return A3(elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
+			}
+		}
+	});
+var elm$core$Basics$gt = _Utils_gt;
+var elm$core$Array$unsafeReplaceTail = F2(
+	function (newTail, _n0) {
+		var len = _n0.a;
+		var startShift = _n0.b;
+		var tree = _n0.c;
+		var tail = _n0.d;
+		var originalTailLen = elm$core$Elm$JsArray$length(tail);
+		var newTailLen = elm$core$Elm$JsArray$length(newTail);
+		var newArrayLen = len + (newTailLen - originalTailLen);
+		if (_Utils_eq(newTailLen, elm$core$Array$branchFactor)) {
+			var overflow = _Utils_cmp(newArrayLen >>> elm$core$Array$shiftStep, 1 << startShift) > 0;
+			if (overflow) {
+				var newShift = startShift + elm$core$Array$shiftStep;
+				var newTree = A4(
+					elm$core$Array$insertTailInTree,
+					newShift,
+					len,
+					newTail,
+					elm$core$Elm$JsArray$singleton(
+						elm$core$Array$SubTree(tree)));
+				return A4(elm$core$Array$Array_elm_builtin, newArrayLen, newShift, newTree, elm$core$Elm$JsArray$empty);
+			} else {
+				return A4(
+					elm$core$Array$Array_elm_builtin,
+					newArrayLen,
+					startShift,
+					A4(elm$core$Array$insertTailInTree, startShift, len, newTail, tree),
+					elm$core$Elm$JsArray$empty);
+			}
+		} else {
+			return A4(elm$core$Array$Array_elm_builtin, newArrayLen, startShift, tree, newTail);
+		}
+	});
+var elm$core$Array$push = F2(
+	function (a, array) {
+		var tail = array.d;
+		return A2(
+			elm$core$Array$unsafeReplaceTail,
+			A2(elm$core$Elm$JsArray$push, a, tail),
+			array);
+	});
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
 var elm$core$List$foldl = F3(
 	function (func, acc, list) {
 		foldl:
@@ -4588,6 +4679,124 @@ var elm$core$List$foldl = F3(
 var elm$core$List$reverse = function (list) {
 	return A3(elm$core$List$foldl, elm$core$List$cons, _List_Nil, list);
 };
+var elm$core$List$foldrHelper = F4(
+	function (fn, acc, ctr, ls) {
+		if (!ls.b) {
+			return acc;
+		} else {
+			var a = ls.a;
+			var r1 = ls.b;
+			if (!r1.b) {
+				return A2(fn, a, acc);
+			} else {
+				var b = r1.a;
+				var r2 = r1.b;
+				if (!r2.b) {
+					return A2(
+						fn,
+						a,
+						A2(fn, b, acc));
+				} else {
+					var c = r2.a;
+					var r3 = r2.b;
+					if (!r3.b) {
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(fn, c, acc)));
+					} else {
+						var d = r3.a;
+						var r4 = r3.b;
+						var res = (ctr > 500) ? A3(
+							elm$core$List$foldl,
+							fn,
+							acc,
+							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(
+									fn,
+									c,
+									A2(fn, d, res))));
+					}
+				}
+			}
+		}
+	});
+var elm$core$List$foldr = F3(
+	function (fn, acc, ls) {
+		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
+	});
+var elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _n0 = f(mx);
+		if (!_n0.$) {
+			var x = _n0.a;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var TSFoster$elm_sha1$SHA1$reduceWords = F2(
+	function (index, words) {
+		var v = function (i) {
+			return A2(elm$core$Array$get, index - i, words);
+		};
+		var val = A2(
+			TSFoster$elm_sha1$SHA1$rotateLeftBy,
+			1,
+			A3(
+				elm$core$List$foldl,
+				elm$core$Bitwise$xor,
+				0,
+				A2(
+					elm$core$List$filterMap,
+					elm$core$Basics$identity,
+					_List_fromArray(
+						[
+							v(3),
+							v(8),
+							v(14),
+							v(16)
+						]))));
+		return A2(elm$core$Array$push, val, words);
+	});
+var TSFoster$elm_sha1$SHA1$wordFromInts = function (ints) {
+	if ((((ints.b && ints.b.b) && ints.b.b.b) && ints.b.b.b.b) && (!ints.b.b.b.b.b)) {
+		var a = ints.a;
+		var _n1 = ints.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		return A3(
+			elm$core$List$foldl,
+			elm$core$Bitwise$or,
+			d,
+			_List_fromArray(
+				[c << 8, b << 16, a << 24]));
+	} else {
+		return 0;
+	}
+};
+var elm$core$Array$empty = A4(elm$core$Array$Array_elm_builtin, 0, elm$core$Array$shiftStep, elm$core$Elm$JsArray$empty, elm$core$Elm$JsArray$empty);
+var elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
 var elm$core$Array$compressNodes = F2(
 	function (nodes, acc) {
 		compressNodes:
@@ -4610,11 +4819,6 @@ var elm$core$Array$compressNodes = F2(
 			}
 		}
 	});
-var elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
-	});
-var elm$core$Basics$eq = _Utils_equal;
 var elm$core$Tuple$first = function (_n0) {
 	var x = _n0.a;
 	return x;
@@ -4635,20 +4839,12 @@ var elm$core$Array$treeFromBuilder = F2(
 			}
 		}
 	});
-var elm$core$Basics$add = _Basics_add;
-var elm$core$Basics$apL = F2(
-	function (f, x) {
-		return f(x);
-	});
 var elm$core$Basics$floor = _Basics_floor;
-var elm$core$Basics$gt = _Utils_gt;
 var elm$core$Basics$max = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) > 0) ? x : y;
 	});
 var elm$core$Basics$mul = _Basics_mul;
-var elm$core$Basics$sub = _Basics_sub;
-var elm$core$Elm$JsArray$length = _JsArray_length;
 var elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
 		if (!builder.a) {
@@ -4672,8 +4868,860 @@ var elm$core$Array$builderToArray = F2(
 				builder.c);
 		}
 	});
+var elm$core$Basics$True = 0;
+var elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _n0 = A2(elm$core$Elm$JsArray$initializeFromList, elm$core$Array$branchFactor, list);
+			var jsArray = _n0.a;
+			var remainingItems = _n0.b;
+			if (_Utils_cmp(
+				elm$core$Elm$JsArray$length(jsArray),
+				elm$core$Array$branchFactor) < 0) {
+				return A2(
+					elm$core$Array$builderToArray,
+					true,
+					{d: nodeList, a: nodeListSize, c: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					elm$core$List$cons,
+					elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return elm$core$Array$empty;
+	} else {
+		return A3(elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
+var elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
+var elm$core$Basics$and = _Basics_and;
+var elm$core$Basics$le = _Utils_le;
+var elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var elm$core$List$length = function (xs) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (_n0, i) {
+				return i + 1;
+			}),
+		0,
+		xs);
+};
+var elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2(elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return elm$core$List$reverse(
+			A3(elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _n0 = _Utils_Tuple2(n, list);
+			_n0$1:
+			while (true) {
+				_n0$5:
+				while (true) {
+					if (!_n0.b.b) {
+						return list;
+					} else {
+						if (_n0.b.b.b) {
+							switch (_n0.a) {
+								case 1:
+									break _n0$1;
+								case 2:
+									var _n2 = _n0.b;
+									var x = _n2.a;
+									var _n3 = _n2.b;
+									var y = _n3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_n0.b.b.b.b) {
+										var _n4 = _n0.b;
+										var x = _n4.a;
+										var _n5 = _n4.b;
+										var y = _n5.a;
+										var _n6 = _n5.b;
+										var z = _n6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _n0$5;
+									}
+								default:
+									if (_n0.b.b.b.b && _n0.b.b.b.b.b) {
+										var _n7 = _n0.b;
+										var x = _n7.a;
+										var _n8 = _n7.b;
+										var y = _n8.a;
+										var _n9 = _n8.b;
+										var z = _n9.a;
+										var _n10 = _n9.b;
+										var w = _n10.a;
+										var tl = _n10.b;
+										return (ctr > 1000) ? A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A2(elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A3(elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _n0$5;
+									}
+							}
+						} else {
+							if (_n0.a === 1) {
+								break _n0$1;
+							} else {
+								break _n0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _n1 = _n0.b;
+			var x = _n1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var elm$core$List$take = F2(
+	function (n, list) {
+		return A3(elm$core$List$takeFast, 0, n, list);
+	});
+var elm_community$list_extra$List$Extra$groupsOfWithStep = F3(
+	function (size, step, xs) {
+		var xs_ = A2(elm$core$List$drop, step, xs);
+		var thisGroup = A2(elm$core$List$take, size, xs);
+		var okayLength = _Utils_eq(
+			size,
+			elm$core$List$length(thisGroup));
+		var okayArgs = (size > 0) && (step > 0);
+		return (okayArgs && okayLength) ? A2(
+			elm$core$List$cons,
+			thisGroup,
+			A3(elm_community$list_extra$List$Extra$groupsOfWithStep, size, step, xs_)) : _List_Nil;
+	});
+var elm_community$list_extra$List$Extra$groupsOf = F2(
+	function (size, xs) {
+		return A3(elm_community$list_extra$List$Extra$groupsOfWithStep, size, size, xs);
+	});
+var elm$core$Tuple$second = function (_n0) {
+	var y = _n0.b;
+	return y;
+};
+var elm_community$list_extra$List$Extra$indexedFoldl = F3(
+	function (func, acc, list) {
+		var step = F2(
+			function (x, _n0) {
+				var i = _n0.a;
+				var thisAcc = _n0.b;
+				return _Utils_Tuple2(
+					i + 1,
+					A3(func, i, x, thisAcc));
+			});
+		return A3(
+			elm$core$List$foldl,
+			step,
+			_Utils_Tuple2(0, acc),
+			list).b;
+	});
+var elm_community$list_extra$List$Extra$initialize = F2(
+	function (n, f) {
+		var step = F2(
+			function (i, acc) {
+				step:
+				while (true) {
+					if (i < 0) {
+						return acc;
+					} else {
+						var $temp$i = i - 1,
+							$temp$acc = A2(
+							elm$core$List$cons,
+							f(i),
+							acc);
+						i = $temp$i;
+						acc = $temp$acc;
+						continue step;
+					}
+				}
+			});
+		return A2(step, n - 1, _List_Nil);
+	});
+var TSFoster$elm_sha1$SHA1$reduceMessage = F2(
+	function (chunk, _n0) {
+		var h0 = _n0.Q;
+		var h1 = _n0.R;
+		var h2 = _n0.S;
+		var h3 = _n0.T;
+		var h4 = _n0.U;
+		var words = elm$core$Array$fromList(
+			A2(
+				elm$core$List$map,
+				TSFoster$elm_sha1$SHA1$wordFromInts,
+				A2(elm_community$list_extra$List$Extra$groupsOf, 4, chunk)));
+		var initialDeltas = A5(TSFoster$elm_sha1$SHA1$DeltaState, h0, h1, h2, h3, h4);
+		var _n1 = A3(
+			elm_community$list_extra$List$Extra$indexedFoldl,
+			TSFoster$elm_sha1$SHA1$calculateDigestDeltas,
+			initialDeltas,
+			elm$core$Array$toList(
+				A3(
+					elm$core$List$foldl,
+					TSFoster$elm_sha1$SHA1$reduceWords,
+					words,
+					A2(
+						elm_community$list_extra$List$Extra$initialize,
+						64,
+						elm$core$Basics$add(16)))));
+		var a = _n1.J;
+		var b = _n1.K;
+		var c = _n1.L;
+		var d = _n1.M;
+		var e = _n1.N;
+		return A5(
+			TSFoster$elm_sha1$SHA1$State,
+			TSFoster$elm_sha1$SHA1$trim(h0 + a),
+			TSFoster$elm_sha1$SHA1$trim(h1 + b),
+			TSFoster$elm_sha1$SHA1$trim(h2 + c),
+			TSFoster$elm_sha1$SHA1$trim(h3 + d),
+			TSFoster$elm_sha1$SHA1$trim(h4 + e));
+	});
+var elm$core$Basics$append = _Utils_append;
+var elm$core$Basics$modBy = _Basics_modBy;
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var TSFoster$elm_sha1$SHA1$hashBytes = function (bytes) {
+	var byteCount = elm$core$List$length(bytes);
+	var zeroBytesToAppend = 4 + A2(
+		elm$core$Basics$modBy,
+		64,
+		56 - A2(elm$core$Basics$modBy, 64, byteCount + 1));
+	var bitCountInBytes = _List_fromArray(
+		[255 & (byteCount >>> (24 - 3)), 255 & (byteCount >>> (16 - 3)), 255 & (byteCount >>> (8 - 3)), 255 & (byteCount << 3)]);
+	var bytesToAppend = A2(
+		elm$core$List$cons,
+		128,
+		_Utils_ap(
+			A2(elm$core$List$repeat, zeroBytesToAppend, 0),
+			bitCountInBytes));
+	var message = _Utils_ap(bytes, bytesToAppend);
+	var chunks = A2(elm_community$list_extra$List$Extra$groupsOf, 64, message);
+	var hashState = A3(elm$core$List$foldl, TSFoster$elm_sha1$SHA1$reduceMessage, TSFoster$elm_sha1$SHA1$init, chunks);
+	return TSFoster$elm_sha1$SHA1$finalDigest(hashState);
+};
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var elm$core$Char$toCode = _Char_toCode;
+var elm$core$String$foldl = _String_foldl;
+var zwilias$elm_utf_tools$String$UTF8$utf32ToUtf8 = F3(
+	function (add, _char, acc) {
+		return (_char < 128) ? A2(add, _char, acc) : ((_char < 2048) ? A2(
+			add,
+			128 | (63 & _char),
+			A2(add, 192 | (_char >>> 6), acc)) : ((_char < 65536) ? A2(
+			add,
+			128 | (63 & _char),
+			A2(
+				add,
+				128 | (63 & (_char >>> 6)),
+				A2(add, 224 | (_char >>> 12), acc))) : A2(
+			add,
+			128 | (63 & _char),
+			A2(
+				add,
+				128 | (63 & (_char >>> 6)),
+				A2(
+					add,
+					128 | (63 & (_char >>> 12)),
+					A2(add, 240 | (_char >>> 18), acc))))));
+	});
+var zwilias$elm_utf_tools$String$UTF8$foldl = F3(
+	function (op, initialAcc, input) {
+		return A3(
+			elm$core$String$foldl,
+			F2(
+				function (_char, acc) {
+					return A3(
+						zwilias$elm_utf_tools$String$UTF8$utf32ToUtf8,
+						op,
+						elm$core$Char$toCode(_char),
+						acc);
+				}),
+			initialAcc,
+			input);
+	});
+var zwilias$elm_utf_tools$String$UTF8$toBytes = function (input) {
+	return elm$core$List$reverse(
+		A3(zwilias$elm_utf_tools$String$UTF8$foldl, elm$core$List$cons, _List_Nil, input));
+};
+var TSFoster$elm_sha1$SHA1$fromString = A2(elm$core$Basics$composeR, zwilias$elm_utf_tools$String$UTF8$toBytes, TSFoster$elm_sha1$SHA1$hashBytes);
+var elm$core$String$join = F2(
+	function (sep, chunks) {
+		return A2(
+			_String_join,
+			sep,
+			_List_toArray(chunks));
+	});
+var elm$core$String$concat = function (strings) {
+	return A2(elm$core$String$join, '', strings);
+};
+var elm$core$String$cons = _String_cons;
+var elm$core$String$fromChar = function (_char) {
+	return A2(elm$core$String$cons, _char, '');
+};
+var elm$core$String$length = _String_length;
+var elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3(elm$core$String$repeatHelp, n, chunk, '');
+	});
+var elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			A2(
+				elm$core$String$repeat,
+				n - elm$core$String$length(string),
+				elm$core$String$fromChar(_char)),
+			string);
+	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$String$fromList = _String_fromList;
 var elm$core$Basics$idiv = _Basics_idiv;
-var elm$core$Basics$lt = _Utils_lt;
+var rtfeldman$elm_hex$Hex$unsafeToDigit = function (num) {
+	unsafeToDigit:
+	while (true) {
+		switch (num) {
+			case 0:
+				return '0';
+			case 1:
+				return '1';
+			case 2:
+				return '2';
+			case 3:
+				return '3';
+			case 4:
+				return '4';
+			case 5:
+				return '5';
+			case 6:
+				return '6';
+			case 7:
+				return '7';
+			case 8:
+				return '8';
+			case 9:
+				return '9';
+			case 10:
+				return 'a';
+			case 11:
+				return 'b';
+			case 12:
+				return 'c';
+			case 13:
+				return 'd';
+			case 14:
+				return 'e';
+			case 15:
+				return 'f';
+			default:
+				var $temp$num = num;
+				num = $temp$num;
+				continue unsafeToDigit;
+		}
+	}
+};
+var rtfeldman$elm_hex$Hex$unsafePositiveToDigits = F2(
+	function (digits, num) {
+		unsafePositiveToDigits:
+		while (true) {
+			if (num < 16) {
+				return A2(
+					elm$core$List$cons,
+					rtfeldman$elm_hex$Hex$unsafeToDigit(num),
+					digits);
+			} else {
+				var $temp$digits = A2(
+					elm$core$List$cons,
+					rtfeldman$elm_hex$Hex$unsafeToDigit(
+						A2(elm$core$Basics$modBy, 16, num)),
+					digits),
+					$temp$num = (num / 16) | 0;
+				digits = $temp$digits;
+				num = $temp$num;
+				continue unsafePositiveToDigits;
+			}
+		}
+	});
+var rtfeldman$elm_hex$Hex$toString = function (num) {
+	return elm$core$String$fromList(
+		(num < 0) ? A2(
+			elm$core$List$cons,
+			'-',
+			A2(rtfeldman$elm_hex$Hex$unsafePositiveToDigits, _List_Nil, -num)) : A2(rtfeldman$elm_hex$Hex$unsafePositiveToDigits, _List_Nil, num));
+};
+var TSFoster$elm_sha1$SHA1$wordToHex = function (_int) {
+	var right = 65535 & _int;
+	var left = _int >>> 16;
+	return elm$core$String$concat(
+		A2(
+			elm$core$List$map,
+			A2(
+				elm$core$Basics$composeR,
+				rtfeldman$elm_hex$Hex$toString,
+				A2(elm$core$String$padLeft, 4, '0')),
+			_List_fromArray(
+				[left, right])));
+};
+var TSFoster$elm_sha1$SHA1$toHex = function (_n0) {
+	var a = _n0.a;
+	var b = _n0.b;
+	var c = _n0.c;
+	var d = _n0.d;
+	var e = _n0.e;
+	return elm$core$String$concat(
+		A2(
+			elm$core$List$map,
+			TSFoster$elm_sha1$SHA1$wordToHex,
+			_List_fromArray(
+				[a, b, c, d, e])));
+};
+var billstclair$elm_sha256$Sha256$initialHs = function (is224) {
+	return is224 ? {J: 3238371032, K: 914150663, L: 812702999, M: 4144912697, N: 4290775857, h: 1750603025, i: 1694076839, g: 3204075428} : {J: 1779033703, K: 3144134277, L: 1013904242, M: 2773480762, N: 1359893119, h: 2600822924, i: 528734635, g: 1541459225};
+};
+var billstclair$elm_sha256$Sha256$extra = _List_fromArray(
+	[-2147483648, 8388608, 32768, 128]);
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (!maybe.$) {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var billstclair$elm_sha256$Sha256$get = F2(
+	function (index, array) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			0,
+			A2(elm$core$Array$get, index, array));
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm_community$list_extra$List$Extra$getAt = F2(
+	function (idx, xs) {
+		return (idx < 0) ? elm$core$Maybe$Nothing : elm$core$List$head(
+			A2(elm$core$List$drop, idx, xs));
+	});
+var billstclair$elm_sha256$Sha256$getAt = F2(
+	function (index, list) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			0,
+			A2(elm_community$list_extra$List$Extra$getAt, index, list));
+	});
+var billstclair$elm_sha256$Sha256$getShift = F2(
+	function (i, n) {
+		return 8 * (3 - ((i + n) & 3));
+	});
+var elm$core$Array$setHelp = F4(
+	function (shift, index, value, tree) {
+		var pos = elm$core$Array$bitMask & (index >>> shift);
+		var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
+		if (!_n0.$) {
+			var subTree = _n0.a;
+			var newSub = A4(elm$core$Array$setHelp, shift - elm$core$Array$shiftStep, index, value, subTree);
+			return A3(
+				elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				elm$core$Array$SubTree(newSub),
+				tree);
+		} else {
+			var values = _n0.a;
+			var newLeaf = A3(elm$core$Elm$JsArray$unsafeSet, elm$core$Array$bitMask & index, value, values);
+			return A3(
+				elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				elm$core$Array$Leaf(newLeaf),
+				tree);
+		}
+	});
+var elm$core$Array$set = F3(
+	function (index, value, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
+			index,
+			elm$core$Array$tailIndex(len)) > -1) ? A4(
+			elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			tree,
+			A3(elm$core$Elm$JsArray$unsafeSet, elm$core$Array$bitMask & index, value, tail)) : A4(
+			elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A4(elm$core$Array$setHelp, startShift, index, value, tree),
+			tail));
+	});
+var billstclair$elm_sha256$Sha256$orIntoBlocks = F3(
+	function (idx, val, blocks) {
+		return A3(
+			elm$core$Array$set,
+			idx,
+			val | A2(billstclair$elm_sha256$Sha256$get, idx, blocks),
+			blocks);
+	});
+var billstclair$elm_sha256$Sha256$sl = F2(
+	function (num, shift) {
+		return num << shift;
+	});
+var billstclair$elm_sha256$Sha256$sr = F2(
+	function (num, shift) {
+		return num >> shift;
+	});
+var elm$core$Basics$not = _Basics_not;
+var billstclair$elm_sha256$Sha256$indexLoop = F5(
+	function (i, index, message, length, blocks) {
+		indexLoop:
+		while (true) {
+			if (!((_Utils_cmp(index, length) < 0) && (i < 64))) {
+				return _Utils_Tuple3(i, index, blocks);
+			} else {
+				var shift = billstclair$elm_sha256$Sha256$getShift(i);
+				var code = A2(billstclair$elm_sha256$Sha256$get, index, message);
+				var _n0 = (code < 128) ? _Utils_Tuple3(
+					1,
+					0,
+					A2(
+						billstclair$elm_sha256$Sha256$sl,
+						code,
+						shift(0))) : ((code < 2048) ? _Utils_Tuple3(
+					2,
+					0,
+					A2(
+						billstclair$elm_sha256$Sha256$sl,
+						128 | (code & 63),
+						shift(1)) | A2(
+						billstclair$elm_sha256$Sha256$sl,
+						192 | A2(billstclair$elm_sha256$Sha256$sr, code, 6),
+						shift(0))) : (((code < 55296) || (code >= 57344)) ? _Utils_Tuple3(
+					3,
+					0,
+					A2(
+						billstclair$elm_sha256$Sha256$sl,
+						128 | (code & 63),
+						shift(2)) | (A2(
+						billstclair$elm_sha256$Sha256$sl,
+						128 | (A2(billstclair$elm_sha256$Sha256$sr, code, 6) & 63),
+						shift(1)) | A2(
+						billstclair$elm_sha256$Sha256$sl,
+						224 | A2(billstclair$elm_sha256$Sha256$sr, code, 12),
+						shift(0)))) : _Utils_Tuple3(
+					4,
+					1,
+					function () {
+						var code2 = (A2(billstclair$elm_sha256$Sha256$get, index + 1, message) & 1023) | (65536 + A2(billstclair$elm_sha256$Sha256$sl, code & 1023, 10));
+						return A2(
+							billstclair$elm_sha256$Sha256$sl,
+							128 | (code2 & 63),
+							shift(3)) | (A2(
+							billstclair$elm_sha256$Sha256$sl,
+							128 | (A2(billstclair$elm_sha256$Sha256$sr, code2, 6) & 63),
+							shift(2)) | (A2(
+							billstclair$elm_sha256$Sha256$sl,
+							128 | ((code2 >> 12) & 63),
+							shift(1)) | A2(
+							billstclair$elm_sha256$Sha256$sl,
+							240 | (code2 >> 18),
+							shift(0))));
+					}())));
+				var iInc = _n0.a;
+				var idxInc = _n0.b;
+				var val = _n0.c;
+				var blocks2 = A3(
+					billstclair$elm_sha256$Sha256$orIntoBlocks,
+					A2(billstclair$elm_sha256$Sha256$sr, i, 2),
+					val,
+					blocks);
+				var $temp$i = i + iInc,
+					$temp$index = (index + idxInc) + 1,
+					$temp$message = message,
+					$temp$length = length,
+					$temp$blocks = blocks2;
+				i = $temp$i;
+				index = $temp$index;
+				message = $temp$message;
+				length = $temp$length;
+				blocks = $temp$blocks;
+				continue indexLoop;
+			}
+		}
+	});
+var billstclair$elm_sha256$Sha256$srz = F2(
+	function (num, shift) {
+		return num >>> shift;
+	});
+var billstclair$elm_sha256$Sha256$jLoop1 = F2(
+	function (j, blocks) {
+		jLoop1:
+		while (true) {
+			var t2 = A2(billstclair$elm_sha256$Sha256$get, j - 2, blocks);
+			var t1 = A2(billstclair$elm_sha256$Sha256$get, j - 15, blocks);
+			var s1 = A2(billstclair$elm_sha256$Sha256$srz, t2, 10) ^ ((A2(billstclair$elm_sha256$Sha256$srz, t2, 19) | A2(billstclair$elm_sha256$Sha256$sl, t2, 13)) ^ (A2(billstclair$elm_sha256$Sha256$srz, t2, 17) | A2(billstclair$elm_sha256$Sha256$sl, t2, 15)));
+			var s0 = A2(billstclair$elm_sha256$Sha256$srz, t1, 3) ^ ((A2(billstclair$elm_sha256$Sha256$srz, t1, 18) | A2(billstclair$elm_sha256$Sha256$sl, t1, 14)) ^ (A2(billstclair$elm_sha256$Sha256$srz, t1, 7) | A2(billstclair$elm_sha256$Sha256$sl, t1, 25)));
+			var blocks2 = A3(
+				elm$core$Array$set,
+				j,
+				A2(
+					billstclair$elm_sha256$Sha256$sl,
+					((A2(billstclair$elm_sha256$Sha256$get, j - 16, blocks) + s0) + A2(billstclair$elm_sha256$Sha256$get, j - 7, blocks)) + s1,
+					0),
+				blocks);
+			if (j < 63) {
+				var $temp$j = j + 1,
+					$temp$blocks = blocks2;
+				j = $temp$j;
+				blocks = $temp$blocks;
+				continue jLoop1;
+			} else {
+				return blocks2;
+			}
+		}
+	});
+var billstclair$elm_sha256$Sha256$ks = elm$core$Array$fromList(
+	_List_fromArray(
+		[1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993, 2453635748, 2870763221, 3624381080, 310598401, 607225278, 1426881987, 1925078388, 2162078206, 2614888103, 3248222580, 3835390401, 4022224774, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, 2554220882, 2821834349, 2952996808, 3210313671, 3336571891, 3584528711, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, 2177026350, 2456956037, 2730485921, 2820302411, 3259730800, 3345764771, 3516065817, 3600352804, 4094571909, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, 2227730452, 2361852424, 2428436474, 2756734187, 3204031479, 3329325298]));
+var billstclair$elm_sha256$Sha256$lognot = elm$core$Bitwise$complement;
+var billstclair$elm_sha256$Sha256$jLoopBody2 = F4(
+	function (j, ab, hs, blocks) {
+		var h = hs.g;
+		var s1 = (A2(billstclair$elm_sha256$Sha256$srz, h, 25) | A2(billstclair$elm_sha256$Sha256$sl, h, 7)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, h, 11) | A2(billstclair$elm_sha256$Sha256$sl, h, 21)) ^ (A2(billstclair$elm_sha256$Sha256$srz, h, 6) | A2(billstclair$elm_sha256$Sha256$sl, h, 26)));
+		var g = hs.i;
+		var f = hs.h;
+		var e = hs.N;
+		var d = hs.M;
+		var s0 = (A2(billstclair$elm_sha256$Sha256$srz, d, 22) | A2(billstclair$elm_sha256$Sha256$sl, d, 10)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, d, 13) | A2(billstclair$elm_sha256$Sha256$sl, d, 19)) ^ (A2(billstclair$elm_sha256$Sha256$srz, d, 2) | A2(billstclair$elm_sha256$Sha256$sl, d, 30)));
+		var ch = (billstclair$elm_sha256$Sha256$lognot(h) & f) ^ (h & e);
+		var t1 = (((g + s1) + ch) + A2(billstclair$elm_sha256$Sha256$get, j + 1, billstclair$elm_sha256$Sha256$ks)) + A2(billstclair$elm_sha256$Sha256$get, j + 1, blocks);
+		var c = hs.L;
+		var g2 = A2(billstclair$elm_sha256$Sha256$sl, c + t1, 0);
+		var ch2 = (g2 & h) ^ (billstclair$elm_sha256$Sha256$lognot(g2) & e);
+		var s3 = (A2(billstclair$elm_sha256$Sha256$srz, g2, 25) | A2(billstclair$elm_sha256$Sha256$sl, g2, 7)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, g2, 11) | A2(billstclair$elm_sha256$Sha256$sl, g2, 21)) ^ (A2(billstclair$elm_sha256$Sha256$srz, g2, 6) | A2(billstclair$elm_sha256$Sha256$sl, g2, 26)));
+		var t3 = (((f + s3) + ch2) + A2(billstclair$elm_sha256$Sha256$get, j + 2, billstclair$elm_sha256$Sha256$ks)) + A2(billstclair$elm_sha256$Sha256$get, j + 2, blocks);
+		var b = hs.K;
+		var f2 = A2(billstclair$elm_sha256$Sha256$sl, b + t3, 0);
+		var ch3 = (f2 & g2) ^ (billstclair$elm_sha256$Sha256$lognot(f2) & h);
+		var s5 = (A2(billstclair$elm_sha256$Sha256$srz, f2, 25) | A2(billstclair$elm_sha256$Sha256$sl, f2, 7)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, f2, 11) | A2(billstclair$elm_sha256$Sha256$sl, f2, 21)) ^ (A2(billstclair$elm_sha256$Sha256$srz, f2, 6) | A2(billstclair$elm_sha256$Sha256$sl, f2, 26)));
+		var t5 = (((e + s5) + ch3) + A2(billstclair$elm_sha256$Sha256$get, j + 3, billstclair$elm_sha256$Sha256$ks)) + A2(billstclair$elm_sha256$Sha256$get, j + 3, blocks);
+		var a = hs.J;
+		var da = d & a;
+		var maj = ab ^ (da ^ (d & b));
+		var t2 = s0 + maj;
+		var c2 = A2(billstclair$elm_sha256$Sha256$sl, t1 + t2, 0);
+		var cd = c2 & d;
+		var s2 = (A2(billstclair$elm_sha256$Sha256$srz, c2, 22) | A2(billstclair$elm_sha256$Sha256$sl, c2, 10)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, c2, 13) | A2(billstclair$elm_sha256$Sha256$sl, c2, 19)) ^ (A2(billstclair$elm_sha256$Sha256$srz, c2, 2) | A2(billstclair$elm_sha256$Sha256$sl, c2, 30)));
+		var e2 = A2(billstclair$elm_sha256$Sha256$sl, a + t5, 0);
+		var maj2 = da ^ (cd ^ (c2 & a));
+		var t4 = s2 + maj2;
+		var b2 = A2(billstclair$elm_sha256$Sha256$sl, t3 + t4, 0);
+		var bc = b2 & c2;
+		var maj3 = cd ^ (bc ^ (b2 & d));
+		var s4 = (A2(billstclair$elm_sha256$Sha256$srz, b2, 22) | A2(billstclair$elm_sha256$Sha256$sl, b2, 10)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, b2, 13) | A2(billstclair$elm_sha256$Sha256$sl, b2, 19)) ^ (A2(billstclair$elm_sha256$Sha256$srz, b2, 2) | A2(billstclair$elm_sha256$Sha256$sl, b2, 30)));
+		var t6 = s4 + maj3;
+		var a2 = A2(billstclair$elm_sha256$Sha256$sl, t5 + t6, 0);
+		return {J: a2, K: b2, L: c2, M: d, N: e2, h: f2, i: g2, g: h};
+	});
+var elm$core$Basics$False = 1;
+var billstclair$elm_sha256$Sha256$jLoop2 = F5(
+	function (j, first, is224, hs, blocks) {
+		jLoop2:
+		while (true) {
+			var jp4 = j + 4;
+			var first2 = false;
+			var _n0 = function () {
+				if (first) {
+					if (is224) {
+						var t1 = A2(billstclair$elm_sha256$Sha256$get, 0, blocks) - 1413257819;
+						return _Utils_Tuple3(
+							300032,
+							A2(billstclair$elm_sha256$Sha256$sl, t1 - 150054599, 0),
+							A2(billstclair$elm_sha256$Sha256$sl, t1 + 24177077, 0));
+					} else {
+						var t2 = A2(billstclair$elm_sha256$Sha256$get, 0, blocks) - 210244248;
+						return _Utils_Tuple3(
+							704751109,
+							A2(billstclair$elm_sha256$Sha256$sl, t2 - 1521486534, 0),
+							A2(billstclair$elm_sha256$Sha256$sl, t2 + 143694565, 0));
+					}
+				} else {
+					var s1 = (A2(billstclair$elm_sha256$Sha256$srz, hs.N, 25) | A2(billstclair$elm_sha256$Sha256$sl, hs.N, 7)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, hs.N, 11) | A2(billstclair$elm_sha256$Sha256$sl, hs.N, 21)) ^ (A2(billstclair$elm_sha256$Sha256$srz, hs.N, 6) | A2(billstclair$elm_sha256$Sha256$sl, hs.N, 26)));
+					var s0 = (A2(billstclair$elm_sha256$Sha256$srz, hs.J, 22) | A2(billstclair$elm_sha256$Sha256$sl, hs.J, 10)) ^ ((A2(billstclair$elm_sha256$Sha256$srz, hs.J, 13) | A2(billstclair$elm_sha256$Sha256$sl, hs.J, 19)) ^ (A2(billstclair$elm_sha256$Sha256$srz, hs.J, 2) | A2(billstclair$elm_sha256$Sha256$sl, hs.J, 30)));
+					var ch = (hs.N & hs.h) ^ (billstclair$elm_sha256$Sha256$lognot(hs.N) & hs.i);
+					var t3 = (((hs.g + s1) + ch) + A2(billstclair$elm_sha256$Sha256$get, j, billstclair$elm_sha256$Sha256$ks)) + A2(billstclair$elm_sha256$Sha256$get, j, blocks);
+					var ab2 = hs.J & hs.K;
+					var maj = (hs.K & hs.L) ^ (ab2 ^ (hs.J & hs.L));
+					var t4 = s0 + maj;
+					return _Utils_Tuple3(
+						ab2,
+						A2(billstclair$elm_sha256$Sha256$sl, hs.M + t3, 0),
+						A2(billstclair$elm_sha256$Sha256$sl, t3 + t4, 0));
+				}
+			}();
+			var ab = _n0.a;
+			var h = _n0.b;
+			var d = _n0.c;
+			var hs2 = _Utils_update(
+				hs,
+				{M: d, g: h});
+			var hs3 = A4(billstclair$elm_sha256$Sha256$jLoopBody2, j, ab, hs2, blocks);
+			if (jp4 < 64) {
+				var $temp$j = jp4,
+					$temp$first = first2,
+					$temp$is224 = is224,
+					$temp$hs = hs3,
+					$temp$blocks = blocks;
+				j = $temp$j;
+				first = $temp$first;
+				is224 = $temp$is224;
+				hs = $temp$hs;
+				blocks = $temp$blocks;
+				continue jLoop2;
+			} else {
+				return hs3;
+			}
+		}
+	});
 var elm$core$Elm$JsArray$initialize = _JsArray_initialize;
 var elm$core$Array$initializeHelp = F5(
 	function (fn, fromIndex, len, nodeList, tail) {
@@ -4701,7 +5749,6 @@ var elm$core$Array$initializeHelp = F5(
 			}
 		}
 	});
-var elm$core$Basics$le = _Utils_le;
 var elm$core$Basics$remainderBy = _Basics_remainderBy;
 var elm$core$Array$initialize = F2(
 	function (len, fn) {
@@ -4714,6 +5761,518 @@ var elm$core$Array$initialize = F2(
 			return A5(elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
 		}
 	});
+var elm$core$Array$repeat = F2(
+	function (n, e) {
+		return A2(
+			elm$core$Array$initialize,
+			n,
+			function (_n0) {
+				return e;
+			});
+	});
+var billstclair$elm_sha256$Sha256$makeBlocks = function (block) {
+	return A3(
+		elm$core$Array$set,
+		0,
+		block,
+		A2(elm$core$Array$repeat, 64, 0));
+};
+var billstclair$elm_sha256$Sha256$sumHS = F2(
+	function (hs1, hs2) {
+		return {
+			J: A2(billstclair$elm_sha256$Sha256$sl, hs1.J + hs2.J, 0),
+			K: A2(billstclair$elm_sha256$Sha256$sl, hs1.K + hs2.K, 0),
+			L: A2(billstclair$elm_sha256$Sha256$sl, hs1.L + hs2.L, 0),
+			M: A2(billstclair$elm_sha256$Sha256$sl, hs1.M + hs2.M, 0),
+			N: A2(billstclair$elm_sha256$Sha256$sl, hs1.N + hs2.N, 0),
+			h: A2(billstclair$elm_sha256$Sha256$sl, hs1.h + hs2.h, 0),
+			i: A2(billstclair$elm_sha256$Sha256$sl, hs1.i + hs2.i, 0),
+			g: A2(billstclair$elm_sha256$Sha256$sl, hs1.g + hs2.g, 0)
+		};
+	});
+var billstclair$elm_sha256$Sha256$outerLoop = F9(
+	function (first, hs, block, start, bytes, index, is224, message, length) {
+		outerLoop:
+		while (true) {
+			var blocks = billstclair$elm_sha256$Sha256$makeBlocks(block);
+			var _n0 = A5(billstclair$elm_sha256$Sha256$indexLoop, start, index, message, length, blocks);
+			var i = _n0.a;
+			var index2 = _n0.b;
+			var blocks2 = _n0.c;
+			var bytes2 = (bytes + i) - start;
+			var start2 = i - 64;
+			var _n1 = _Utils_eq(index2, length) ? _Utils_Tuple2(
+				A3(
+					billstclair$elm_sha256$Sha256$orIntoBlocks,
+					A2(billstclair$elm_sha256$Sha256$sr, i, 2),
+					A2(billstclair$elm_sha256$Sha256$getAt, i & 3, billstclair$elm_sha256$Sha256$extra),
+					blocks2),
+				index2 + 1) : _Utils_Tuple2(blocks2, index2);
+			var blocks3 = _n1.a;
+			var index3 = _n1.b;
+			var block2 = A2(billstclair$elm_sha256$Sha256$get, 16, blocks3);
+			var _n2 = ((_Utils_cmp(index3, length) > 0) && (i < 56)) ? _Utils_Tuple2(
+				true,
+				A3(
+					elm$core$Array$set,
+					15,
+					A2(billstclair$elm_sha256$Sha256$sl, bytes2, 3),
+					blocks3)) : _Utils_Tuple2(false, blocks3);
+			var end = _n2.a;
+			var blocks4 = _n2.b;
+			var blocks5 = A2(billstclair$elm_sha256$Sha256$jLoop1, 16, blocks4);
+			var hs2 = A5(billstclair$elm_sha256$Sha256$jLoop2, 0, first, is224, hs, blocks5);
+			var hs3 = A2(billstclair$elm_sha256$Sha256$sumHS, hs, hs2);
+			if (!end) {
+				var $temp$first = false,
+					$temp$hs = hs3,
+					$temp$block = block2,
+					$temp$start = start2,
+					$temp$bytes = bytes2,
+					$temp$index = index3,
+					$temp$is224 = is224,
+					$temp$message = message,
+					$temp$length = length;
+				first = $temp$first;
+				hs = $temp$hs;
+				block = $temp$block;
+				start = $temp$start;
+				bytes = $temp$bytes;
+				index = $temp$index;
+				is224 = $temp$is224;
+				message = $temp$message;
+				length = $temp$length;
+				continue outerLoop;
+			} else {
+				return hs3;
+			}
+		}
+	});
+var elm$core$String$foldr = _String_foldr;
+var elm$core$String$toList = function (string) {
+	return A3(elm$core$String$foldr, elm$core$List$cons, _List_Nil, string);
+};
+var billstclair$elm_sha256$Sha256$stringToMessage = function (string) {
+	return elm$core$Array$fromList(
+		A2(
+			elm$core$List$map,
+			elm$core$Char$toCode,
+			elm$core$String$toList(string)));
+};
+var elm$core$Char$fromCode = _Char_fromCode;
+var billstclair$elm_sha256$Sha256$toHex1 = function (x) {
+	var x2 = x & 15;
+	return elm$core$Char$fromCode(
+		x2 + ((x2 < 10) ? elm$core$Char$toCode('0') : ((-10) + elm$core$Char$toCode('a'))));
+};
+var billstclair$elm_sha256$Sha256$toHex8 = function (x) {
+	return elm$core$String$fromList(
+		A2(
+			elm$core$List$map,
+			function (shift) {
+				return billstclair$elm_sha256$Sha256$toHex1(
+					A2(billstclair$elm_sha256$Sha256$sr, x, shift));
+			},
+			_List_fromArray(
+				[28, 24, 20, 16, 12, 8, 4, 0])));
+};
+var billstclair$elm_sha256$Sha256$toHex56 = function (hs) {
+	return A3(
+		elm$core$List$foldr,
+		elm$core$Basics$append,
+		'',
+		A2(
+			elm$core$List$map,
+			billstclair$elm_sha256$Sha256$toHex8,
+			_List_fromArray(
+				[hs.J, hs.K, hs.L, hs.M, hs.N, hs.h, hs.i])));
+};
+var billstclair$elm_sha256$Sha256$toHex64 = function (hs) {
+	return _Utils_ap(
+		billstclair$elm_sha256$Sha256$toHex56(hs),
+		billstclair$elm_sha256$Sha256$toHex8(hs.g));
+};
+var elm$core$Array$length = function (_n0) {
+	var len = _n0.a;
+	return len;
+};
+var billstclair$elm_sha256$Sha256$hash = F2(
+	function (string, is224) {
+		var start = 0;
+		var message = billstclair$elm_sha256$Sha256$stringToMessage(string);
+		var length = elm$core$Array$length(message);
+		var index = 0;
+		var hs = billstclair$elm_sha256$Sha256$initialHs(is224);
+		var bytes = 0;
+		var block = 0;
+		var hs2 = A9(billstclair$elm_sha256$Sha256$outerLoop, true, hs, block, start, bytes, index, is224, message, length);
+		return is224 ? billstclair$elm_sha256$Sha256$toHex56(hs2) : billstclair$elm_sha256$Sha256$toHex64(hs2);
+	});
+var billstclair$elm_sha256$Sha256$sha256 = function (string) {
+	return A2(billstclair$elm_sha256$Sha256$hash, string, false);
+};
+var elm$core$String$toUpper = _String_toUpper;
+var truqu$elm_md5$MD5$emptyWords = A2(elm$core$Array$repeat, 16, 0);
+var truqu$elm_md5$MD5$addUnsigned = F2(
+	function (x, y) {
+		return 4294967295 & (x + y);
+	});
+var truqu$elm_md5$MD5$rotateLeft = F2(
+	function (bits, input) {
+		return (input << bits) | (input >>> (32 - bits));
+	});
+var truqu$elm_md5$MD5$cmn = F8(
+	function (fun, a, b, c, d, x, s, ac) {
+		return A2(
+			truqu$elm_md5$MD5$addUnsigned,
+			b,
+			A2(
+				truqu$elm_md5$MD5$rotateLeft,
+				s,
+				A2(
+					truqu$elm_md5$MD5$addUnsigned,
+					a,
+					A2(
+						truqu$elm_md5$MD5$addUnsigned,
+						ac,
+						A2(
+							truqu$elm_md5$MD5$addUnsigned,
+							A3(fun, b, c, d),
+							x)))));
+	});
+var truqu$elm_md5$MD5$f = F3(
+	function (x, y, z) {
+		return z ^ (x & (y ^ z));
+	});
+var truqu$elm_md5$MD5$ff = F7(
+	function (a, b, c, d, x, s, ac) {
+		return A8(truqu$elm_md5$MD5$cmn, truqu$elm_md5$MD5$f, a, b, c, d, x, s, ac);
+	});
+var truqu$elm_md5$MD5$g = F3(
+	function (x, y, z) {
+		return y ^ (z & (x ^ y));
+	});
+var truqu$elm_md5$MD5$gg = F7(
+	function (a, b, c, d, x, s, ac) {
+		return A8(truqu$elm_md5$MD5$cmn, truqu$elm_md5$MD5$g, a, b, c, d, x, s, ac);
+	});
+var truqu$elm_md5$MD5$h = F3(
+	function (x, y, z) {
+		return z ^ (x ^ y);
+	});
+var truqu$elm_md5$MD5$hh = F7(
+	function (a, b, c, d, x, s, ac) {
+		return A8(truqu$elm_md5$MD5$cmn, truqu$elm_md5$MD5$h, a, b, c, d, x, s, ac);
+	});
+var truqu$elm_md5$MD5$i = F3(
+	function (x, y, z) {
+		return y ^ (x | (~z));
+	});
+var truqu$elm_md5$MD5$ii = F7(
+	function (a, b, c, d, x, s, ac) {
+		return A8(truqu$elm_md5$MD5$cmn, truqu$elm_md5$MD5$i, a, b, c, d, x, s, ac);
+	});
+var truqu$elm_md5$MD5$hex_ = F2(
+	function (xs, acc) {
+		var a = acc.J;
+		var b = acc.K;
+		var c = acc.L;
+		var d = acc.M;
+		if ((((((((((((((((xs.b && xs.b.b) && xs.b.b.b) && xs.b.b.b.b) && xs.b.b.b.b.b) && xs.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && xs.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && (!xs.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b)) {
+			var x0 = xs.a;
+			var _n1 = xs.b;
+			var x1 = _n1.a;
+			var _n2 = _n1.b;
+			var x2 = _n2.a;
+			var _n3 = _n2.b;
+			var x3 = _n3.a;
+			var _n4 = _n3.b;
+			var x4 = _n4.a;
+			var _n5 = _n4.b;
+			var x5 = _n5.a;
+			var _n6 = _n5.b;
+			var x6 = _n6.a;
+			var _n7 = _n6.b;
+			var x7 = _n7.a;
+			var _n8 = _n7.b;
+			var x8 = _n8.a;
+			var _n9 = _n8.b;
+			var x9 = _n9.a;
+			var _n10 = _n9.b;
+			var x10 = _n10.a;
+			var _n11 = _n10.b;
+			var x11 = _n11.a;
+			var _n12 = _n11.b;
+			var x12 = _n12.a;
+			var _n13 = _n12.b;
+			var x13 = _n13.a;
+			var _n14 = _n13.b;
+			var x14 = _n14.a;
+			var _n15 = _n14.b;
+			var x15 = _n15.a;
+			var s44 = 21;
+			var s43 = 15;
+			var s42 = 10;
+			var s41 = 6;
+			var s34 = 23;
+			var s33 = 16;
+			var s32 = 11;
+			var s31 = 4;
+			var s24 = 20;
+			var s23 = 14;
+			var s22 = 9;
+			var s21 = 5;
+			var s14 = 22;
+			var s13 = 17;
+			var s12 = 12;
+			var s11 = 7;
+			var d00 = d;
+			var c00 = c;
+			var b00 = b;
+			var a00 = a;
+			var a01 = A7(truqu$elm_md5$MD5$ff, a00, b00, c00, d00, x0, s11, 3614090360);
+			var d01 = A7(truqu$elm_md5$MD5$ff, d00, a01, b00, c00, x1, s12, 3905402710);
+			var c01 = A7(truqu$elm_md5$MD5$ff, c00, d01, a01, b00, x2, s13, 606105819);
+			var b01 = A7(truqu$elm_md5$MD5$ff, b00, c01, d01, a01, x3, s14, 3250441966);
+			var a02 = A7(truqu$elm_md5$MD5$ff, a01, b01, c01, d01, x4, s11, 4118548399);
+			var d02 = A7(truqu$elm_md5$MD5$ff, d01, a02, b01, c01, x5, s12, 1200080426);
+			var c02 = A7(truqu$elm_md5$MD5$ff, c01, d02, a02, b01, x6, s13, 2821735955);
+			var b02 = A7(truqu$elm_md5$MD5$ff, b01, c02, d02, a02, x7, s14, 4249261313);
+			var a03 = A7(truqu$elm_md5$MD5$ff, a02, b02, c02, d02, x8, s11, 1770035416);
+			var d03 = A7(truqu$elm_md5$MD5$ff, d02, a03, b02, c02, x9, s12, 2336552879);
+			var c03 = A7(truqu$elm_md5$MD5$ff, c02, d03, a03, b02, x10, s13, 4294925233);
+			var b03 = A7(truqu$elm_md5$MD5$ff, b02, c03, d03, a03, x11, s14, 2304563134);
+			var a04 = A7(truqu$elm_md5$MD5$ff, a03, b03, c03, d03, x12, s11, 1804603682);
+			var d04 = A7(truqu$elm_md5$MD5$ff, d03, a04, b03, c03, x13, s12, 4254626195);
+			var c04 = A7(truqu$elm_md5$MD5$ff, c03, d04, a04, b03, x14, s13, 2792965006);
+			var b04 = A7(truqu$elm_md5$MD5$ff, b03, c04, d04, a04, x15, s14, 1236535329);
+			var a05 = A7(truqu$elm_md5$MD5$gg, a04, b04, c04, d04, x1, s21, 4129170786);
+			var d05 = A7(truqu$elm_md5$MD5$gg, d04, a05, b04, c04, x6, s22, 3225465664);
+			var c05 = A7(truqu$elm_md5$MD5$gg, c04, d05, a05, b04, x11, s23, 643717713);
+			var b05 = A7(truqu$elm_md5$MD5$gg, b04, c05, d05, a05, x0, s24, 3921069994);
+			var a06 = A7(truqu$elm_md5$MD5$gg, a05, b05, c05, d05, x5, s21, 3593408605);
+			var d06 = A7(truqu$elm_md5$MD5$gg, d05, a06, b05, c05, x10, s22, 38016083);
+			var c06 = A7(truqu$elm_md5$MD5$gg, c05, d06, a06, b05, x15, s23, 3634488961);
+			var b06 = A7(truqu$elm_md5$MD5$gg, b05, c06, d06, a06, x4, s24, 3889429448);
+			var a07 = A7(truqu$elm_md5$MD5$gg, a06, b06, c06, d06, x9, s21, 568446438);
+			var d07 = A7(truqu$elm_md5$MD5$gg, d06, a07, b06, c06, x14, s22, 3275163606);
+			var c07 = A7(truqu$elm_md5$MD5$gg, c06, d07, a07, b06, x3, s23, 4107603335);
+			var b07 = A7(truqu$elm_md5$MD5$gg, b06, c07, d07, a07, x8, s24, 1163531501);
+			var a08 = A7(truqu$elm_md5$MD5$gg, a07, b07, c07, d07, x13, s21, 2850285829);
+			var d08 = A7(truqu$elm_md5$MD5$gg, d07, a08, b07, c07, x2, s22, 4243563512);
+			var c08 = A7(truqu$elm_md5$MD5$gg, c07, d08, a08, b07, x7, s23, 1735328473);
+			var b08 = A7(truqu$elm_md5$MD5$gg, b07, c08, d08, a08, x12, s24, 2368359562);
+			var a09 = A7(truqu$elm_md5$MD5$hh, a08, b08, c08, d08, x5, s31, 4294588738);
+			var d09 = A7(truqu$elm_md5$MD5$hh, d08, a09, b08, c08, x8, s32, 2272392833);
+			var c09 = A7(truqu$elm_md5$MD5$hh, c08, d09, a09, b08, x11, s33, 1839030562);
+			var b09 = A7(truqu$elm_md5$MD5$hh, b08, c09, d09, a09, x14, s34, 4259657740);
+			var a10 = A7(truqu$elm_md5$MD5$hh, a09, b09, c09, d09, x1, s31, 2763975236);
+			var d10 = A7(truqu$elm_md5$MD5$hh, d09, a10, b09, c09, x4, s32, 1272893353);
+			var c10 = A7(truqu$elm_md5$MD5$hh, c09, d10, a10, b09, x7, s33, 4139469664);
+			var b10 = A7(truqu$elm_md5$MD5$hh, b09, c10, d10, a10, x10, s34, 3200236656);
+			var a11 = A7(truqu$elm_md5$MD5$hh, a10, b10, c10, d10, x13, s31, 681279174);
+			var d11 = A7(truqu$elm_md5$MD5$hh, d10, a11, b10, c10, x0, s32, 3936430074);
+			var c11 = A7(truqu$elm_md5$MD5$hh, c10, d11, a11, b10, x3, s33, 3572445317);
+			var b11 = A7(truqu$elm_md5$MD5$hh, b10, c11, d11, a11, x6, s34, 76029189);
+			var a12 = A7(truqu$elm_md5$MD5$hh, a11, b11, c11, d11, x9, s31, 3654602809);
+			var d12 = A7(truqu$elm_md5$MD5$hh, d11, a12, b11, c11, x12, s32, 3873151461);
+			var c12 = A7(truqu$elm_md5$MD5$hh, c11, d12, a12, b11, x15, s33, 530742520);
+			var b12 = A7(truqu$elm_md5$MD5$hh, b11, c12, d12, a12, x2, s34, 3299628645);
+			var a13 = A7(truqu$elm_md5$MD5$ii, a12, b12, c12, d12, x0, s41, 4096336452);
+			var d13 = A7(truqu$elm_md5$MD5$ii, d12, a13, b12, c12, x7, s42, 1126891415);
+			var c13 = A7(truqu$elm_md5$MD5$ii, c12, d13, a13, b12, x14, s43, 2878612391);
+			var b13 = A7(truqu$elm_md5$MD5$ii, b12, c13, d13, a13, x5, s44, 4237533241);
+			var a14 = A7(truqu$elm_md5$MD5$ii, a13, b13, c13, d13, x12, s41, 1700485571);
+			var d14 = A7(truqu$elm_md5$MD5$ii, d13, a14, b13, c13, x3, s42, 2399980690);
+			var c14 = A7(truqu$elm_md5$MD5$ii, c13, d14, a14, b13, x10, s43, 4293915773);
+			var b14 = A7(truqu$elm_md5$MD5$ii, b13, c14, d14, a14, x1, s44, 2240044497);
+			var a15 = A7(truqu$elm_md5$MD5$ii, a14, b14, c14, d14, x8, s41, 1873313359);
+			var d15 = A7(truqu$elm_md5$MD5$ii, d14, a15, b14, c14, x15, s42, 4264355552);
+			var c15 = A7(truqu$elm_md5$MD5$ii, c14, d15, a15, b14, x6, s43, 2734768916);
+			var b15 = A7(truqu$elm_md5$MD5$ii, b14, c15, d15, a15, x13, s44, 1309151649);
+			var a16 = A7(truqu$elm_md5$MD5$ii, a15, b15, c15, d15, x4, s41, 4149444226);
+			var d16 = A7(truqu$elm_md5$MD5$ii, d15, a16, b15, c15, x11, s42, 3174756917);
+			var c16 = A7(truqu$elm_md5$MD5$ii, c15, d16, a16, b15, x2, s43, 718787259);
+			var b16 = A7(truqu$elm_md5$MD5$ii, b15, c16, d16, a16, x9, s44, 3951481745);
+			var b17 = A2(truqu$elm_md5$MD5$addUnsigned, b00, b16);
+			var c17 = A2(truqu$elm_md5$MD5$addUnsigned, c00, c16);
+			var d17 = A2(truqu$elm_md5$MD5$addUnsigned, d00, d16);
+			var a17 = A2(truqu$elm_md5$MD5$addUnsigned, a00, a16);
+			return {J: a17, K: b17, L: c17, M: d17};
+		} else {
+			return acc;
+		}
+	});
+var truqu$elm_md5$MD5$iget = F2(
+	function (index, array) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			0,
+			A2(elm$core$Array$get, index, array));
+	});
+var truqu$elm_md5$MD5$consume = F2(
+	function (_char, _n0) {
+		var hashState = _n0.a;
+		var _n1 = _n0.b;
+		var byteCount = _n1.a;
+		var words = _n1.b;
+		var totalByteCount = _n0.c;
+		var wordCount = (byteCount / 4) | 0;
+		var oldWord = A2(truqu$elm_md5$MD5$iget, wordCount, words);
+		var bytePosition = 8 * (byteCount % 4);
+		var code = _char << bytePosition;
+		var newWord = oldWord | code;
+		var newWords = A3(elm$core$Array$set, wordCount, newWord, words);
+		return (byteCount === 63) ? _Utils_Tuple3(
+			A2(
+				truqu$elm_md5$MD5$hex_,
+				elm$core$Array$toList(newWords),
+				hashState),
+			_Utils_Tuple2(0, truqu$elm_md5$MD5$emptyWords),
+			totalByteCount + 1) : _Utils_Tuple3(
+			hashState,
+			_Utils_Tuple2(byteCount + 1, newWords),
+			totalByteCount + 1);
+	});
+var truqu$elm_md5$MD5$finishUp = function (_n0) {
+	var hashState = _n0.a;
+	var _n1 = _n0.b;
+	var byteCount = _n1.a;
+	var words = _n1.b;
+	var totalByteCount = _n0.c;
+	var wordCount = (byteCount / 4) | 0;
+	var oldWord = A2(truqu$elm_md5$MD5$iget, wordCount, words);
+	var bytePosition = 8 * (byteCount % 4);
+	var code = 128 << bytePosition;
+	var newWord = oldWord | code;
+	var newWords = A3(elm$core$Array$set, wordCount, newWord, words);
+	return (wordCount < 14) ? function (x) {
+		return A2(truqu$elm_md5$MD5$hex_, x, hashState);
+	}(
+		elm$core$Array$toList(
+			A3(
+				elm$core$Array$set,
+				15,
+				totalByteCount >>> 29,
+				A3(elm$core$Array$set, 14, totalByteCount << 3, newWords)))) : function (x) {
+		return A2(
+			truqu$elm_md5$MD5$hex_,
+			x,
+			A2(
+				truqu$elm_md5$MD5$hex_,
+				elm$core$Array$toList(newWords),
+				hashState));
+	}(
+		elm$core$Array$toList(
+			A3(
+				elm$core$Array$set,
+				15,
+				totalByteCount >>> 29,
+				A3(elm$core$Array$set, 14, totalByteCount << 3, truqu$elm_md5$MD5$emptyWords))));
+};
+var truqu$elm_md5$MD5$State = F4(
+	function (a, b, c, d) {
+		return {J: a, K: b, L: c, M: d};
+	});
+var truqu$elm_md5$MD5$initialHashState = A4(truqu$elm_md5$MD5$State, 1732584193, 4023233417, 2562383102, 271733878);
+var truqu$elm_md5$MD5$hash = function (input) {
+	return truqu$elm_md5$MD5$finishUp(
+		A3(
+			zwilias$elm_utf_tools$String$UTF8$foldl,
+			truqu$elm_md5$MD5$consume,
+			_Utils_Tuple3(
+				truqu$elm_md5$MD5$initialHashState,
+				_Utils_Tuple2(0, truqu$elm_md5$MD5$emptyWords),
+				0),
+			input));
+};
+var truqu$elm_md5$MD5$bytes = function (string) {
+	var _n0 = truqu$elm_md5$MD5$hash(string);
+	var a = _n0.J;
+	var b = _n0.K;
+	var c = _n0.L;
+	var d = _n0.M;
+	return _List_fromArray(
+		[a & 255, (a >>> 8) & 255, (a >>> 16) & 255, (a >>> 24) & 255, b & 255, (b >>> 8) & 255, (b >>> 16) & 255, (b >>> 24) & 255, c & 255, (c >>> 8) & 255, (c >>> 16) & 255, (c >>> 24) & 255, d & 255, (d >>> 8) & 255, (d >>> 16) & 255, (d >>> 24) & 255]);
+};
+var truqu$elm_md5$MD5$toHex = function (_byte) {
+	switch (_byte) {
+		case 0:
+			return '0';
+		case 1:
+			return '1';
+		case 2:
+			return '2';
+		case 3:
+			return '3';
+		case 4:
+			return '4';
+		case 5:
+			return '5';
+		case 6:
+			return '6';
+		case 7:
+			return '7';
+		case 8:
+			return '8';
+		case 9:
+			return '9';
+		case 10:
+			return 'a';
+		case 11:
+			return 'b';
+		case 12:
+			return 'c';
+		case 13:
+			return 'd';
+		case 14:
+			return 'e';
+		case 15:
+			return 'f';
+		default:
+			return _Utils_ap(
+				truqu$elm_md5$MD5$toHex((_byte / 16) | 0),
+				truqu$elm_md5$MD5$toHex(_byte % 16));
+	}
+};
+var truqu$elm_md5$MD5$hex = function (s) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (b, acc) {
+				return _Utils_ap(
+					acc,
+					A3(
+						elm$core$String$padLeft,
+						2,
+						'0',
+						truqu$elm_md5$MD5$toHex(b)));
+			}),
+		'',
+		truqu$elm_md5$MD5$bytes(s));
+};
+var author$project$Main$hash = F2(
+	function (hashType, input) {
+		switch (hashType) {
+			case 0:
+				return elm$core$String$toUpper(
+					truqu$elm_md5$MD5$hex(input));
+			case 1:
+				return elm$core$String$toUpper(
+					billstclair$elm_sha256$Sha256$sha256(input));
+			default:
+				return elm$core$String$toUpper(
+					TSFoster$elm_sha1$SHA1$toHex(
+						TSFoster$elm_sha1$SHA1$fromString(input)));
+		}
+	});
+var elm$core$Result$isOk = function (result) {
+	if (!result.$) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var elm$core$Result$Err = function (a) {
 	return {$: 1, a: a};
 };
@@ -4735,10 +6294,6 @@ var elm$json$Json$Decode$Index = F2(
 var elm$json$Json$Decode$OneOf = function (a) {
 	return {$: 2, a: a};
 };
-var elm$core$Basics$and = _Basics_and;
-var elm$core$Basics$append = _Utils_append;
-var elm$core$Basics$or = _Basics_or;
-var elm$core$Char$toCode = _Char_toCode;
 var elm$core$Char$isLower = function (_char) {
 	var code = elm$core$Char$toCode(_char);
 	return (97 <= code) && (code <= 122);
@@ -4756,16 +6311,6 @@ var elm$core$Char$isDigit = function (_char) {
 };
 var elm$core$Char$isAlphaNum = function (_char) {
 	return elm$core$Char$isLower(_char) || (elm$core$Char$isUpper(_char) || elm$core$Char$isDigit(_char));
-};
-var elm$core$List$length = function (xs) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (_n0, i) {
-				return i + 1;
-			}),
-		0,
-		xs);
 };
 var elm$core$List$map2 = _List_map2;
 var elm$core$List$rangeHelp = F3(
@@ -4802,13 +6347,6 @@ var elm$core$List$indexedMap = F2(
 	});
 var elm$core$String$all = _String_all;
 var elm$core$String$fromInt = _String_fromNumber;
-var elm$core$String$join = F2(
-	function (sep, chunks) {
-		return A2(
-			_String_join,
-			sep,
-			_List_toArray(chunks));
-	});
 var elm$core$String$uncons = _String_uncons;
 var elm$core$String$split = F2(
 	function (sep, string) {
@@ -4944,6 +6482,7 @@ var elm$html$Html$br = _VirtualDom_node('br');
 var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$html$Html$h2 = _VirtualDom_node('h2');
+var elm$html$Html$h3 = _VirtualDom_node('h3');
 var elm$html$Html$header = _VirtualDom_node('header');
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
@@ -4958,6 +6497,15 @@ var elm$html$Html$Attributes$stringProperty = F2(
 	});
 var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$readonly = elm$html$Html$Attributes$boolProperty('readOnly');
 var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
 var elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
@@ -4972,61 +6520,6 @@ var elm$html$Html$Events$stopPropagationOn = F2(
 			elm$virtual_dom$VirtualDom$on,
 			event,
 			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var elm$core$List$foldrHelper = F4(
-	function (fn, acc, ctr, ls) {
-		if (!ls.b) {
-			return acc;
-		} else {
-			var a = ls.a;
-			var r1 = ls.b;
-			if (!r1.b) {
-				return A2(fn, a, acc);
-			} else {
-				var b = r1.a;
-				var r2 = r1.b;
-				if (!r2.b) {
-					return A2(
-						fn,
-						a,
-						A2(fn, b, acc));
-				} else {
-					var c = r2.a;
-					var r3 = r2.b;
-					if (!r3.b) {
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(fn, c, acc)));
-					} else {
-						var d = r3.a;
-						var r4 = r3.b;
-						var res = (ctr > 500) ? A3(
-							elm$core$List$foldl,
-							fn,
-							acc,
-							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(
-									fn,
-									c,
-									A2(fn, d, res))));
-					}
-				}
-			}
-		}
-	});
-var elm$core$List$foldr = F3(
-	function (fn, acc, ls) {
-		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
 	});
 var elm$json$Json$Decode$field = _Json_decodeField;
 var elm$json$Json$Decode$at = F2(
@@ -5064,14 +6557,14 @@ var author$project$Main$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								elm$html$Html$text('Sample project')
+								elm$html$Html$text('Desktop Hasher')
 							])),
 						A2(
 						elm$html$Html$h2,
 						_List_Nil,
 						_List_fromArray(
 							[
-								elm$html$Html$text('Some mild description')
+								elm$html$Html$text('Easily hash strings')
 							]))
 					])),
 				A2(elm$html$Html$br, _List_Nil, _List_Nil),
@@ -5080,20 +6573,65 @@ var author$project$Main$view = function (model) {
 				_List_fromArray(
 					[
 						elm$html$Html$Attributes$class('form-control'),
-						elm$html$Html$Attributes$placeholder('Enter text here'),
-						elm$html$Html$Attributes$value(model.z),
+						elm$html$Html$Attributes$placeholder('Enter string here'),
+						elm$html$Html$Attributes$value(model.q),
 						elm$html$Html$Events$onInput(elm$core$Basics$identity)
 					]),
 				_List_Nil),
 				A2(elm$html$Html$br, _List_Nil, _List_Nil),
 				A2(
-				elm$html$Html$div,
+				elm$html$Html$h3,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text(
-						author$project$Main$oodle(model.z))
-					]))
+						elm$html$Html$text('MD5 hash')
+					])),
+				A2(
+				elm$html$Html$input,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('form-control'),
+						elm$html$Html$Attributes$value(
+						A2(author$project$Main$hash, 0, model.q)),
+						elm$html$Html$Attributes$readonly(true)
+					]),
+				_List_Nil),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$h3,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text('SHA-1 hash')
+					])),
+				A2(
+				elm$html$Html$input,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('form-control'),
+						elm$html$Html$Attributes$value(
+						A2(author$project$Main$hash, 2, model.q)),
+						elm$html$Html$Attributes$readonly(true)
+					]),
+				_List_Nil),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$h3,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text('SHA-256 hash')
+					])),
+				A2(
+				elm$html$Html$input,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('form-control'),
+						elm$html$Html$Attributes$value(
+						A2(author$project$Main$hash, 1, model.q)),
+						elm$html$Html$Attributes$readonly(true)
+					]),
+				_List_Nil)
 			]));
 };
 var elm$core$Platform$Cmd$batch = _Platform_batch;
@@ -5119,20 +6657,6 @@ var elm$core$Basics$never = function (_n0) {
 var elm$core$Task$Perform = elm$core$Basics$identity;
 var elm$core$Task$succeed = _Scheduler_succeed;
 var elm$core$Task$init = elm$core$Task$succeed(0);
-var elm$core$List$map = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, acc) {
-					return A2(
-						elm$core$List$cons,
-						f(x),
-						acc);
-				}),
-			_List_Nil,
-			xs);
-	});
 var elm$core$Task$andThen = _Scheduler_andThen;
 var elm$core$Task$map = F2(
 	function (func, taskA) {
@@ -5205,7 +6729,6 @@ var elm$core$Task$perform = F2(
 		return elm$core$Task$command(
 			A2(elm$core$Task$map, toMessage, task));
 	});
-var elm$core$String$length = _String_length;
 var elm$core$String$slice = _String_slice;
 var elm$core$String$dropLeft = F2(
 	function (n, string) {
@@ -5230,7 +6753,7 @@ var elm$core$String$contains = _String_contains;
 var elm$core$String$toInt = _String_toInt;
 var elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {T: fragment, U: host, Z: path, aa: port_, ad: protocol, ae: query};
+		return {af: fragment, ag: host, al: path, an: port_, aq: protocol, ar: query};
 	});
 var elm$url$Url$chompBeforePath = F5(
 	function (protocol, path, params, frag, str) {
@@ -5337,22 +6860,22 @@ var elm$url$Url$fromString = function (str) {
 var elm$browser$Browser$sandbox = function (impl) {
 	return _Browser_element(
 		{
-			av: function (_n0) {
-				return _Utils_Tuple2(impl.av, elm$core$Platform$Cmd$none);
+			aI: function (_n0) {
+				return _Utils_Tuple2(impl.aI, elm$core$Platform$Cmd$none);
 			},
-			aE: function (_n1) {
+			aR: function (_n1) {
 				return elm$core$Platform$Sub$none;
 			},
-			aG: F2(
+			aT: F2(
 				function (msg, model) {
 					return _Utils_Tuple2(
-						A2(impl.aG, msg, model),
+						A2(impl.aT, msg, model),
 						elm$core$Platform$Cmd$none);
 				}),
-			aI: impl.aI
+			aV: impl.aV
 		});
 };
 var author$project$Main$main = elm$browser$Browser$sandbox(
-	{av: author$project$Main$init, aG: author$project$Main$update, aI: author$project$Main$view});
+	{aI: author$project$Main$init, aT: author$project$Main$update, aV: author$project$Main$view});
 _Platform_export({'Main':{'init':author$project$Main$main(
 	elm$json$Json$Decode$succeed(0))(0)}});}(this));

@@ -1,35 +1,24 @@
 import Browser
-import Html exposing (Html, Attribute, div, input, text, button, h1, h2, header, br)
+import Html exposing (Html, Attribute, div, input, text, button, h1, h2, header, br, h3)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 import Regex
-
-
+import Sha256
+import MD5
+import SHA1
 
 -- MAIN
 
-
-main =
-  Browser.sandbox { init = init, update = update, view = view }
-
-
+main = Browser.sandbox { init = init, update = update, view = view }
 
 -- MODEL
 
-
-type alias Model =
-  { content : String
-  }
-
+type alias Model = { content : String }
 
 init : Model
-init =
-  { content = "" }
-
-
+init = { content = "" }
 
 -- UPDATE
-
 
 type Msg
   = Change String
@@ -41,28 +30,36 @@ update msg model =
     Change newContent ->
       { model | content = newContent }
 
-oodle : String -> String
-oodle input = 
-  case Regex.fromString "[aeiou]" of
-      Nothing -> input
-      Just matched -> Regex.replace matched (\_ -> "oodle") input 
+type Hash = MD5 | SHA256 | SHA1
 
+hash : Hash -> String -> String
+hash hashType input = 
+  case hashType of
+    MD5 -> input |> MD5.hex |> String.toUpper
 
+    SHA256 -> input |> Sha256.sha256 |> String.toUpper
 
+    SHA1 -> input |> SHA1.fromString |> SHA1.toHex |> String.toUpper
 
 -- VIEW
-
 
 view : Model -> Html Msg
 view model =
   div []
     [ header [] 
       [ 
-        h1 [] [ text "Sample project" ]
-      , h2 [] [ text "Some mild description" ]
+        h1 [] [ text "Desktop Hasher" ]
+      , h2 [] [ text "Easily hash strings" ]
       ]
     , br [] []
-    , input [ class "form-control", placeholder "Enter text here", value model.content, onInput Change ] []
+    , input [ class "form-control", placeholder "Enter string here", value model.content, onInput Change ] []
     , br [] []
-    , div [] [ text (oodle model.content) ]
+    , h3 [] [ text "MD5 hash" ]
+    , input [ class "form-control", value (hash MD5 model.content), readonly True ] []
+    , br [] []
+    , h3 [] [ text "SHA-1 hash" ]
+    , input [ class "form-control", value (hash SHA1 model.content), readonly True ] []
+    , br [] [] 
+    , h3 [] [ text "SHA-256 hash" ]
+    , input [ class "form-control", value (hash SHA256 model.content), readonly True ] []
     ]
