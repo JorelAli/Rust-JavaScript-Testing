@@ -31,7 +31,7 @@ fn main() {
         <body>
           <div>
             <button onclick="external.invoke('opendialog')">Open save dialog</button>
-            <p id="jsMsg"></p>
+            <textarea id="jsMsg" rows="200" cols="100"></textarea>
           </div>
           <script>
             function myJavaScriptFunction(text) {{
@@ -64,11 +64,16 @@ fn main() {
             "opendialog" => {
               let some_str = webview.dialog(Dialog::OpenFile, "hello", Some("hi there"));
               let lines = fs::read_to_string(some_str).expect("Can't read file.");
+              let lines = lines.replace("\"", "\\\"");
+              let lines = lines.replace("\r\n", "\\n");
+
+              let exec = &format!("myJavaScriptFunction(\"{}\")", lines);
 
               // println!("{}", some_str);
-              println!("{}", lines);
+              // println!("{}", lines);
+              println!("{}", exec);
               //Using this \"{}\" method is not "perfect". It still doesn't escape strings properly
-              webview.eval(&format!("myJavaScriptFunction(\"{}\")", lines));
+              webview.eval(exec);
             }
             _ => unimplemented!()
           }
