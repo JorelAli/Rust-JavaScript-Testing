@@ -40,6 +40,7 @@ fn main() {
             function myJavaScriptFunction(text) {{
                 //console.log("hi")
                 document.getElementById('jsMsg').innerHTML = '' + text;
+                alert("hello");
             }}
           </script>
         </body>
@@ -61,7 +62,7 @@ fn main() {
         move |mut webview| {
             webview.set_background_color(0.11, 0.12, 0.13, 1.0);
         },
-        move |webview, arg, userdata| {
+        move |webview, arg, _userdata| {
 
           match arg {
             "opendialog" => {
