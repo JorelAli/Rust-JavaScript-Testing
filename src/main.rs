@@ -10,7 +10,7 @@ fn main() {
     let titlebar_transparent = true;
     // let frontend_cb = |_webview: &mut _, _arg: &_, _userdata: &mut _| {
     // };
-    let userdata = ();
+    let userdata = "hi";
 
     let html = format!(r#"
         <!DOCTYPE HTML>
@@ -31,11 +31,14 @@ fn main() {
         <body>
           <div>
             <button onclick="external.invoke('opendialog')">Open save dialog</button>
+            <br>
+            <button onclick="external.invoke('alert')">Open alert</button>
+            <br>
             <textarea id="jsMsg" rows="200" cols="100"></textarea>
           </div>
           <script>
             function myJavaScriptFunction(text) {{
-                console.log("hi")
+                //console.log("hi")
                 document.getElementById('jsMsg').innerHTML = '' + text;
             }}
           </script>
@@ -66,14 +69,19 @@ fn main() {
               let lines = fs::read_to_string(some_str).expect("Can't read file.");
               let lines = lines.replace("\"", "\\\"");
               let lines = lines.replace("\r\n", "\\n");
+              let lines = lines.replace("\n", "\\n");
 
               let exec = &format!("myJavaScriptFunction(\"{}\")", lines);
 
               // println!("{}", some_str);
               // println!("{}", lines);
-              println!("{}", exec);
+              // println!("{}", exec);
+              println!("{}", userdata);
               //Using this \"{}\" method is not "perfect". It still doesn't escape strings properly
               webview.eval(exec);
+            }
+            "alert" => {
+              webview.dialog(Dialog::Alert(Alert::Info), "hi", Some("hi there"));
             }
             _ => unimplemented!()
           }
