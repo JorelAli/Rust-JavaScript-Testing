@@ -32,7 +32,7 @@ fn main() {
           <div>
             <button onclick="external.invoke('opendialog')">Open save dialog</button>
             <br>
-            <button onclick="external.invoke('alert')">Open alert</button>
+            <button onclick="external.invoke('sysalert')">Open alert</button>
             <br>
             <textarea id="jsMsg" rows="200" cols="100"></textarea>
           </div>
@@ -40,7 +40,7 @@ fn main() {
             function myJavaScriptFunction(text) {{
                 //console.log("hi")
                 document.getElementById('jsMsg').innerHTML = '' + text;
-                alert("hello");
+                //alert("hello");
             }}
           </script>
         </body>
@@ -65,8 +65,12 @@ fn main() {
         move |webview, arg, _userdata| {
 
           match arg {
+            
+            // "sysalert" => {
+            //   webview.dialog(Dialog::Alert(Alert::Info), "hi", Some("hi there"));
+            // }
             "opendialog" => {
-              let some_str = webview.dialog(Dialog::OpenFile, "hello", Some("hi there"));
+              let some_str = /*diag(webview);*/webview.dialog(Dialog::OpenFile, "hello", Some("hi there"));
               let lines = fs::read_to_string(some_str).expect("Can't read file.");
               let lines = lines.replace("\"", "\\\"");
               let lines = lines.replace("\r\n", "\\n");
@@ -81,8 +85,10 @@ fn main() {
               //Using this \"{}\" method is not "perfect". It still doesn't escape strings properly
               webview.eval(exec);
             }
-            "alert" => {
+            "sysalert" => {
+              //test(webview);
               webview.dialog(Dialog::Alert(Alert::Info), "hi", Some("hi there"));
+              println!("hi");
             }
             _ => unimplemented!()
           }
@@ -94,3 +100,11 @@ fn main() {
         userdata
     );
 }
+
+// fn diag<'a, T>(webview: &mut WebView<'a, T>) -> std::string::String {
+//   return webview.dialog(Dialog::OpenFile, "hello", Some("hi there"));
+// }
+
+// fn test<'a, T>(webview: &mut WebView<'a, T>) {
+//   webview.dialog(Dialog::Alert(Alert::Info), "hi", Some("hi there"));
+// }
