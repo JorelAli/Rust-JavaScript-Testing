@@ -1,6 +1,7 @@
 extern crate web_view;
 
 use web_view::*;
+use std::fs;
 
 fn main() {
     let size = (800, 550);
@@ -28,8 +29,16 @@ fn main() {
         </head>
         
         <body>
-          <div id="elm"></div>
-          <script> var app = Elm.Main.init({{ node: document.getElementById('elm') }}); </script>
+          <div>
+            <button onclick="external.invoke('opendialog')">Open save dialog</button>
+            <p id="jsMsg"></p>
+          </div>
+          <script>
+            function myJavaScriptFunction(text) {{
+                console.log("hi")
+                document.getElementById('jsMsg').innerHTML = '' + text;
+            }}
+          </script>
         </body>
         </html>
     "#,
@@ -48,11 +57,25 @@ fn main() {
         titlebar_transparent,
         move |mut webview| {
             webview.set_background_color(0.11, 0.12, 0.13, 1.0);
-            //webview.dialog(Dialog::Alert, "hello", Some("hi there"));
-            // webview.eval("hi");
         },
         move |webview, arg, userdata| {
-          webview.eval("hi");
+
+          match arg {
+            "opendialog" => {
+              let some_str = webview.dialog(Dialog::OpenFile, "hello", Some("hi there"));
+              let lines = fs::read_to_string(some_str).expect("Can't read file.");
+
+              // println!("{}", some_str);
+              println!("{}", lines);
+              //Using this \"{}\" method is not "perfect". It still doesn't escape strings properly
+              webview.eval(&format!("myJavaScriptFunction(\"{}\")", lines));
+            }
+            _ => unimplemented!()
+          }
+
+          // webview.eval("hi");
+
+          // webview.dialog("hi", "hi", "hi");
         },
         userdata
     );
