@@ -1,5 +1,5 @@
 #!/bin/sh
-nix-shell -p cargo pkg-config webkitgtk elmPackages.elm --pure --run "\
+nix-shell -p cargo pkg-config webkitgtk elmPackages.elm gnome2.GConf --pure --run "\
 	echo '== Building Elm to main.js ==' && \
 	cd www && \
 	elm make src/Main.elm --output=main.js --optimize && \
